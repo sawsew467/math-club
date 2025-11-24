@@ -120,3 +120,101 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* CKEditor 5 Styles */
+.ck-editor__main {
+  min-height: 200px;
+}
+
+.ck-editor__editable {
+  min-height: 200px;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.ck-editor__editable:focus {
+  box-shadow: none !important;
+  border-color: var(--ring) !important;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.ck.ck-toolbar {
+  border-radius: 0.5rem 0.5rem 0 0;
+  border-color: var(--border);
+  background: var(--background);
+}
+
+.ck.ck-button {
+  color: var(--foreground);
+}
+
+.ck.ck-button:hover {
+  background: var(--accent);
+}
+
+.ck.ck-button.ck-on {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.ck-content {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.6;
+}
+
+.ck-content h1 {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.ck-content h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.ck-content h3 {
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.ck-content p {
+  margin: 1em 0;
+}
+
+.ck-content ul,
+.ck-content ol {
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+.ck-content blockquote {
+  border-left: 4px solid var(--border);
+  padding-left: 1em;
+  margin: 1em 0;
+  font-style: italic;
+}
+
+.ck-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.ck-content table td,
+.ck-content table th {
+  border: 1px solid var(--border);
+  padding: 0.5em;
+}
+
+.ck-content table th {
+  background: var(--secondary);
+  font-weight: bold;
+}
+
+/* MathType styles */
+.ck-content .Wirisformula {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0.2em;
+}

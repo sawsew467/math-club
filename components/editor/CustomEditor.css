@@ -1,0 +1,40 @@
+/* Custom styles for CKEditor */
+.ck.ck-editor {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #d1d5db !important;
+}
+
+.ck.ck-editor__top .ck-sticky-panel .ck-toolbar {
+    border: none !important;
+    border-bottom: none !important;
+    background: #f9fafb !important;
+}
+
+.ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content {
+    border: none !important;
+}
+
+.ck.ck-editor__main>.ck-editor__editable {
+    border-radius: 0 0 12px 12px;
+    min-height: var(--editor-min-height, 400px);
+    border: none !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}
+
+.ck.ck-editor__main>.ck-editor__editable.ck-focused {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Optional: Add some padding to the container */
+.editor-container {
+    padding: 0;
+}
+
+.wrs_modal_dialogContainer.wrs_modal_desktop {
+    border-radius: 12px 12px 0 0 !important;
+    overflow: hidden !important;
+}
