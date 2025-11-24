@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import ContentDisplay from '@/components/editor/ContentDisplay';
+import { ChatDialog } from '@/components/chat/ChatDialog';
 import { useExamStore } from '@/store/exam-store';
-import { CheckCircle2, XCircle, Home, RefreshCw, BookOpen } from 'lucide-react';
+import { CheckCircle2, XCircle, Home, RefreshCw, BookOpen, MessageCircle } from 'lucide-react';
 
 export default function ExamResultPage() {
   const router = useRouter();
@@ -225,39 +226,70 @@ function QuestionResult({
   showExplanation: boolean;
   onToggleExplanation: () => void;
 }) {
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Strip HTML tags for question context
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    const tmp = document.createElement('DIV');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  const questionContext = {
+    question: stripHtml(question.question),
+    correctAnswer: typeof question.correctAnswer === 'string'
+      ? stripHtml(question.correctAnswer)
+      : String(question.correctAnswer),
+    explanation: stripHtml(question.explanation),
+    userAnswer: userAnswer ? stripHtml(String(userAnswer)) : undefined,
+  };
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Câu {index + 1}</span>
-            {question.type === 'essay' ? (
-              <Badge className="bg-yellow-100 text-yellow-800">
-                Cần chấm điểm
-              </Badge>
-            ) : isCorrect ? (
-              <Badge className="bg-green-100 text-green-800">
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                Đúng
-              </Badge>
-            ) : (
-              <Badge className="bg-red-100 text-red-800">
-                <XCircle className="mr-1 h-3 w-3" />
-                Sai
-              </Badge>
-            )}
-            <Badge variant="outline">{question.points} điểm</Badge>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Câu {index + 1}</span>
+              {question.type === 'essay' ? (
+                <Badge className="bg-yellow-100 text-yellow-800">
+                  Cần chấm điểm
+                </Badge>
+              ) : isCorrect ? (
+                <Badge className="bg-green-100 text-green-800">
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  Đúng
+                </Badge>
+              ) : (
+                <Badge className="bg-red-100 text-red-800">
+                  <XCircle className="mr-1 h-3 w-3" />
+                  Sai
+                </Badge>
+              )}
+              <Badge variant="outline">{question.points} điểm</Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleExplanation}
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                {showExplanation ? 'Ẩn' : 'Xem'} giải thích
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setChatOpen(true)}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Hỏi AI
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleExplanation}
-          >
-            <BookOpen className="mr-2 h-4 w-4" />
-            {showExplanation ? 'Ẩn' : 'Xem'} giải thích
-          </Button>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="space-y-3">
         <div>
           <p className="font-medium mb-2">Câu hỏi:</p>
@@ -386,5 +418,12 @@ function QuestionResult({
         )}
       </CardContent>
     </Card>
+
+      <ChatDialog
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        questionContext={questionContext}
+      />
+    </>
   );
 }
