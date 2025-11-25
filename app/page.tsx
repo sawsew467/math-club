@@ -1,274 +1,291 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useExamStore } from '@/store/exam-store';
-import { PlusCircle, BookOpen, GraduationCap, Clock, User, Play, Edit, Trash2, Database } from 'lucide-react';
-import { toast } from 'sonner';
-import { initSampleData } from '@/lib/sample-data';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import {
+  Brain,
+  BookOpen,
+  Bot,
+  CheckCircle,
+  ArrowRight,
+  Sparkles,
+  Target,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 
 export default function HomePage() {
-  const router = useRouter();
-  const { exams, deleteExam, results } = useExamStore();
-
-  // Filter published exams for students
-  const publishedExams = exams.filter(exam => exam.isPublished);
-  const draftExams = exams.filter(exam => !exam.isPublished);
-
-  const handleDeleteExam = (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa đề thi này?')) {
-      deleteExam(id);
-      toast.success('Đã xóa đề thi');
-    }
-  };
-
-  const getExamResult = (examId: string) => {
-    return results.find(r => r.examId === examId);
-  };
-
-  const handleLoadSampleData = () => {
-    const loaded = initSampleData();
-    if (loaded) {
-      toast.success('Đã tải dữ liệu mẫu thành công! Vui lòng refresh trang.');
-      setTimeout(() => window.location.reload(), 1000);
-    } else {
-      toast.info('Dữ liệu mẫu đã tồn tại');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Math Club</h1>
-              <p className="text-gray-600 mt-1">Hệ thống ôn luyện toán học THPT</p>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+          <div className="container mx-auto px-4 py-20 md:py-32">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
+                <Sparkles className="h-4 w-4" />
+                Nền tảng học tập thông minh
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                Chinh phục môn Toán
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {" "}cùng AI
+                </span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                Math Club giúp học sinh THPT ôn luyện hiệu quả với hệ thống đề thi thông minh,
+                hỗ trợ giải thích chi tiết bằng AI và công cụ sơ đồ tư duy trực quan.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" asChild className="text-base">
+                  <Link href="/exams">
+                    <BookOpen className="mr-2 h-5 w-5" />
+                    Bắt đầu ôn luyện
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild className="text-base">
+                  <Link href="/mind-maps">
+                    <Brain className="mr-2 h-5 w-5" />
+                    Khám phá sơ đồ tư duy
+                  </Link>
+                </Button>
+              </div>
             </div>
-            {exams.length === 0 && (
-              <Button onClick={handleLoadSampleData} variant="outline">
-                <Database className="mr-2 h-4 w-4" />
-                Tải dữ liệu mẫu
-              </Button>
-            )}
           </div>
-        </div>
-      </header>
+        </section>
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="student" className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="student" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Học sinh
-            </TabsTrigger>
-            <TabsTrigger value="teacher" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Giáo viên
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Student Tab */}
-          <TabsContent value="student" className="space-y-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold">Danh sách đề thi</h2>
-              <p className="text-gray-600 mt-2">Chọn đề thi để bắt đầu làm bài</p>
+        {/* Features Section */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Hai công cụ mạnh mẽ cho việc học
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Kết hợp ôn luyện đề thi với AI và sơ đồ tư duy để nắm vững kiến thức
+              </p>
             </div>
 
-            {publishedExams.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Chưa có đề thi nào được xuất bản</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {publishedExams.map(exam => {
-                  const result = getExamResult(exam.id);
-
-                  return (
-                    <Card key={exam.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">{exam.title}</CardTitle>
-                            <CardDescription className="mt-1">
-                              {exam.description}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="outline">Lớp {exam.grade}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Clock className="h-4 w-4" />
-                          <span>{exam.duration} phút</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <BookOpen className="h-4 w-4" />
-                          <span>{exam.questions.length} câu hỏi</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <User className="h-4 w-4" />
-                          <span>{exam.author}</span>
-                        </div>
-                        {result && (
-                          <div className="mt-3 p-2 bg-green-50 rounded">
-                            <p className="text-sm font-medium text-green-800">
-                              Đã làm: {result.score}/{result.totalScore} điểm ({result.percentage.toFixed(0)}%)
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                      <CardFooter className="gap-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => router.push(`/student/exam/${exam.id}`)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          {result ? 'Làm lại' : 'Làm bài'}
-                        </Button>
-                        {result && (
-                          <Button
-                            variant="outline"
-                            onClick={() => router.push(`/student/result/${exam.id}`)}
-                          >
-                            Xem kết quả
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Teacher Tab */}
-          <TabsContent value="teacher" className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-semibold">Quản lý đề thi</h2>
-                <p className="text-gray-600 mt-1">Tạo và quản lý đề thi của bạn</p>
-              </div>
-              <Button onClick={() => router.push('/teacher/editor')}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tạo đề thi mới
-              </Button>
-            </div>
-
-            {/* Published Exams */}
-            {publishedExams.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Đề thi đã xuất bản</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {publishedExams.map(exam => (
-                    <Card key={exam.id}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{exam.title}</CardTitle>
-                        <CardDescription>{exam.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex gap-2 mb-2">
-                          <Badge>Lớp {exam.grade}</Badge>
-                          <Badge variant="secondary">{exam.questions.length} câu</Badge>
-                          <Badge variant="outline">{exam.totalPoints} điểm</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Tạo: {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/student/exam/${exam.id}`)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Xem
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteExam(exam.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Draft Exams */}
-            {draftExams.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Bản nháp</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {draftExams.map(exam => (
-                    <Card key={exam.id} className="border-dashed">
-                      <CardHeader>
-                        <CardTitle className="text-lg">{exam.title}</CardTitle>
-                        <CardDescription>{exam.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex gap-2 mb-2">
-                          <Badge variant="secondary">Nháp</Badge>
-                          <Badge variant="outline">{exam.questions.length} câu</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Tạo: {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteExam(exam.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {exams.length === 0 && (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">Bạn chưa tạo đề thi nào</p>
-                  <Button onClick={() => router.push('/teacher/editor')}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tạo đề thi đầu tiên
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Exam Practice Card */}
+              <Card className="relative overflow-hidden border-2 hover:border-blue-200 transition-colors group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-bl-full -z-10" />
+                <CardHeader>
+                  <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <BookOpen className="h-7 w-7 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-2xl">Ôn luyện đề thi</CardTitle>
+                  <CardDescription className="text-base">
+                    Làm bài thi thử với đề thi chất lượng cao, được AI hỗ trợ giải thích chi tiết
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Đề thi theo chuẩn của Bộ GD&ĐT</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Chấm điểm tự động, xem kết quả ngay</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">AI giải thích từng câu hỏi chi tiết</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Hỗ trợ công thức toán học đẹp mắt</span>
+                    </li>
+                  </ul>
+                  <Button asChild className="w-full group-hover:bg-blue-700">
+                    <Link href="/exams">
+                      Xem danh sách đề thi
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+
+              {/* Mind Map Card */}
+              <Card className="relative overflow-hidden border-2 hover:border-purple-200 transition-colors group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-purple-50 rounded-bl-full -z-10" />
+                <CardHeader>
+                  <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Brain className="h-7 w-7 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-2xl">Sơ đồ tư duy</CardTitle>
+                  <CardDescription className="text-base">
+                    Tổng hợp các công cụ vẽ sơ đồ tư duy miễn phí, giúp hệ thống hóa kiến thức
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Danh sách công cụ vẽ sơ đồ miễn phí</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Hướng dẫn sử dụng chi tiết</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Mẫu sơ đồ tư duy cho môn Toán</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                      <span className="text-gray-600">Chia sẻ và lưu trữ online</span>
+                    </li>
+                  </ul>
+                  <Button asChild variant="outline" className="w-full group-hover:bg-purple-50 group-hover:border-purple-300">
+                    <Link href="/mind-maps">
+                      Khám phá công cụ
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Feature Section */}
+        <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 text-blue-300 text-sm font-medium mb-6">
+                    <Bot className="h-4 w-4" />
+                    Tính năng AI
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                    Trợ lý AI thông minh hỗ trợ 24/7
+                  </h2>
+                  <p className="text-lg text-gray-300 mb-8">
+                    Không hiểu câu hỏi nào? Hãy hỏi AI! Trợ lý thông minh sẽ giải thích chi tiết,
+                    gợi ý phương pháp giải và hướng dẫn bạn từng bước.
+                  </p>
+                  <ul className="space-y-4">
+                    <li className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <span>Giải thích lời giải chi tiết từng bước</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <span>Gợi ý tài liệu và kiến thức liên quan</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <span>Trả lời mọi thắc mắc về bài toán</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="relative">
+                  <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Trợ lý AI</p>
+                        <p className="text-sm text-gray-400">Đang trực tuyến</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="bg-gray-700/50 rounded-lg p-4">
+                        <p className="text-sm text-gray-300">
+                          Để giải bất phương trình $x^2 - 5x + 6 &gt; 0$, ta cần tìm nghiệm của phương trình $x^2 - 5x + 6 = 0$ trước...
+                        </p>
+                      </div>
+                      <div className="bg-blue-500/20 rounded-lg p-4 ml-8">
+                        <p className="text-sm text-blue-100">
+                          Giải thích thêm về phương pháp đặt dấu ạ?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
+              <div>
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">1000+</p>
+                <p className="text-gray-600">Học sinh</p>
+              </div>
+              <div>
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+                  <BookOpen className="h-6 w-6 text-green-600" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">500+</p>
+                <p className="text-gray-600">Đề thi</p>
+              </div>
+              <div>
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3">
+                  <Target className="h-6 w-6 text-purple-600" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">95%</p>
+                <p className="text-gray-600">Hài lòng</p>
+              </div>
+              <div>
+                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-3">
+                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">+2.5</p>
+                <p className="text-gray-600">Điểm trung bình</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+              Sẵn sàng chinh phục môn Toán?
+            </h2>
+            <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
+              Đăng ký miễn phí ngay hôm nay và bắt đầu hành trình học tập hiệu quả cùng Math Club
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" variant="secondary" asChild className="text-base">
+                <Link href="/auth/register">
+                  Đăng ký miễn phí
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="text-base bg-transparent text-white border-white hover:bg-white/10">
+                <Link href="/exams">
+                  Xem đề thi mẫu
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <p className="text-center text-gray-600 text-sm">
-            © 2024 Math Club - Hệ thống ôn luyện toán học THPT
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

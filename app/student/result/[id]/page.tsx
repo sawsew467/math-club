@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import ContentDisplay from '@/components/editor/ContentDisplay';
 import { ChatDialog } from '@/components/chat/ChatDialog';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useExamStore } from '@/store/exam-store';
 import { CheckCircle2, XCircle, Home, RefreshCw, BookOpen, MessageCircle } from 'lucide-react';
 
@@ -26,14 +28,18 @@ export default function ExamResultPage() {
 
   if (!exam || !result) {
     return (
-      <div className="container mx-auto py-8">
-        <Alert>
-          <AlertDescription>Không tìm thấy kết quả thi!</AlertDescription>
-        </Alert>
-        <Button onClick={() => router.push('/')} className="mt-4">
-          <Home className="mr-2 h-4 w-4" />
-          Về trang chủ
-        </Button>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 container mx-auto py-8 px-4">
+          <Alert>
+            <AlertDescription>Không tìm thấy kết quả thi!</AlertDescription>
+          </Alert>
+          <Button onClick={() => router.push('/exams')} className="mt-4">
+            <Home className="mr-2 h-4 w-4" />
+            Xem đề thi khác
+          </Button>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -71,7 +77,9 @@ export default function ExamResultPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1 container mx-auto py-8 max-w-5xl px-4">
       {/* Header with score */}
       <Card className="mb-6">
         <CardHeader>
@@ -197,15 +205,17 @@ export default function ExamResultPage() {
 
       {/* Actions */}
       <div className="flex gap-4 justify-center mt-8">
-        <Button onClick={() => router.push('/')} variant="outline">
+        <Button onClick={() => router.push('/exams')} variant="outline">
           <Home className="mr-2 h-4 w-4" />
-          Về trang chủ
+          Danh sách đề thi
         </Button>
         <Button onClick={() => router.push(`/student/exam/${examId}`)}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Làm lại
         </Button>
       </div>
+      </main>
+      <Footer />
     </div>
   );
 }
