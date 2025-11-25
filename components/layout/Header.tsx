@@ -36,7 +36,11 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, profile, isTeacher, signOut, isLoading } = useAuth();
+  const { user, profile, isTeacher, teacherProfile, signOut, isLoading } = useAuth();
+
+  // Determine display name and role
+  const displayName = isTeacher ? teacherProfile?.name : profile?.full_name;
+  const isLoggedIn = isTeacher || (user && profile);
 
   const handleLogout = async () => {
     await signOut();
@@ -81,21 +85,28 @@ export function Header() {
         <div className="flex items-center gap-2">
           {isLoading ? (
             <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
-          ) : user && profile ? (
+          ) : isLoggedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                    <User className="h-4 w-4 text-blue-600" />
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full",
+                    isTeacher ? "bg-purple-100" : "bg-blue-100"
+                  )}>
+                    {isTeacher ? (
+                      <GraduationCap className="h-4 w-4 text-purple-600" />
+                    ) : (
+                      <User className="h-4 w-4 text-blue-600" />
+                    )}
                   </div>
                   <span className="hidden md:inline text-sm font-medium">
-                    {profile.full_name}
+                    {displayName}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <div className="px-2 py-1.5 text-sm text-gray-500">
-                  {profile.role === "teacher" ? "Giáo viên" : `Học sinh lớp ${profile.grade}`}
+                  {isTeacher ? "Giáo viên" : `Học sinh lớp ${profile?.grade}`}
                 </div>
                 <DropdownMenuSeparator />
                 {isTeacher && (
@@ -106,7 +117,7 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
+                {isTeacher && <DropdownMenuSeparator />}
                 <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
                   Đăng xuất
@@ -154,10 +165,10 @@ export function Header() {
                 ))}
 
                 <div className="border-t pt-4 mt-4">
-                  {user && profile ? (
+                  {isLoggedIn ? (
                     <>
                       <div className="px-4 py-2 text-sm text-gray-500">
-                        Xin chào, {profile.full_name}
+                        Xin chào, {displayName}
                       </div>
                       {isTeacher && (
                         <Link

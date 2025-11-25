@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -20,7 +18,6 @@ import {
 import { GraduationCap, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/types/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,9 +25,7 @@ export default function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<UserRole>("student");
 
   // Form states
   const [name, setName] = useState("");
@@ -42,17 +37,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (!acceptTerms) {
-      setError("Vui lòng đồng ý với điều khoản sử dụng");
-      return;
-    }
-
     if (password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự");
       return;
     }
 
-    if (role === "student" && !grade) {
+    if (!grade) {
       setError("Vui lòng chọn lớp của bạn");
       return;
     }
@@ -63,8 +53,8 @@ export default function RegisterPage() {
       email,
       password,
       name,
-      role,
-      role === "student" ? parseInt(grade) : undefined
+      "student",
+      parseInt(grade)
     );
 
     if (error) {
@@ -78,27 +68,18 @@ export default function RegisterPage() {
     }
 
     toast.success("Đăng ký thành công! Chào mừng bạn đến với Math Club!");
-    // Wait for profile to be fetched before navigating
     setTimeout(() => {
       setIsLoading(false);
-      router.push(role === "teacher" ? "/teacher" : "/exams");
+      router.push("/exams");
     }, 600);
   };
 
-  const benefits = {
-    student: [
-      "Làm đề thi không giới hạn",
-      "AI hỗ trợ giải thích chi tiết",
-      "Theo dõi tiến độ học tập",
-      "Hoàn toàn miễn phí",
-    ],
-    teacher: [
-      "Tạo đề thi dễ dàng",
-      "Import đề từ PDF với AI",
-      "Quản lý kết quả học sinh",
-      "Hoàn toàn miễn phí",
-    ],
-  };
+  const benefits = [
+    "Làm đề thi không giới hạn",
+    "AI hỗ trợ giải thích chi tiết",
+    "Theo dõi tiến độ học tập",
+    "Hoàn toàn miễn phí",
+  ];
 
   if (authLoading) {
     return (
@@ -128,12 +109,10 @@ export default function RegisterPage() {
               Tham gia Math Club ngay hôm nay
             </h1>
             <p className="text-gray-600 mb-8">
-              {role === "teacher"
-                ? "Nền tảng hỗ trợ giáo viên tạo và quản lý đề thi hiệu quả"
-                : "Nền tảng học tập thông minh giúp bạn chinh phục môn Toán với sự hỗ trợ của AI"}
+              Nền tảng học tập thông minh giúp bạn chinh phục môn Toán với sự hỗ trợ của AI
             </p>
             <ul className="space-y-4">
-              {benefits[role].map((benefit, index) => (
+              {benefits.map((benefit, index) => (
                 <li key={index} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="h-4 w-4 text-green-600" />
@@ -152,27 +131,13 @@ export default function RegisterPage() {
                   <GraduationCap className="h-7 w-7 text-white" />
                 </div>
               </Link>
-              <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
+              <CardTitle className="text-2xl">Tạo tài khoản học sinh</CardTitle>
               <CardDescription>
-                Đăng ký để bắt đầu hành trình {role === "teacher" ? "giảng dạy" : "học tập"}
+                Đăng ký để bắt đầu hành trình học tập
               </CardDescription>
             </CardHeader>
 
             <CardContent>
-              {/* Role Selection */}
-              <Tabs value={role} onValueChange={(v) => setRole(v as UserRole)} className="mb-6">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="student" className="gap-2">
-                    <User className="h-4 w-4" />
-                    Học sinh
-                  </TabsTrigger>
-                  <TabsTrigger value="teacher" className="gap-2">
-                    <GraduationCap className="h-4 w-4" />
-                    Giáo viên
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
               {error && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
@@ -215,21 +180,19 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {role === "student" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="grade">Lớp</Label>
-                    <Select value={grade} onValueChange={setGrade} disabled={isLoading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn lớp của bạn" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">Lớp 10</SelectItem>
-                        <SelectItem value="11">Lớp 11</SelectItem>
-                        <SelectItem value="12">Lớp 12</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="grade">Lớp</Label>
+                  <Select value={grade} onValueChange={setGrade} disabled={isLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn lớp của bạn" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">Lớp 10</SelectItem>
+                      <SelectItem value="11">Lớp 11</SelectItem>
+                      <SelectItem value="12">Lớp 12</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Mật khẩu</Label>
@@ -254,25 +217,6 @@ export default function RegisterPage() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                </div>
-
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={acceptTerms}
-                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                    disabled={isLoading}
-                  />
-                  <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed cursor-pointer">
-                    Tôi đồng ý với{" "}
-                    <Link href="/terms" className="text-blue-600 hover:underline">
-                      Điều khoản sử dụng
-                    </Link>{" "}
-                    và{" "}
-                    <Link href="/privacy" className="text-blue-600 hover:underline">
-                      Chính sách bảo mật
-                    </Link>
-                  </Label>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>

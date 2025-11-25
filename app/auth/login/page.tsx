@@ -31,7 +31,7 @@ function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    const { error } = await signIn(email, password);
+    const { error, isTeacher } = await signIn(email, password);
 
     if (error) {
       setError(error.message === "Invalid login credentials"
@@ -43,9 +43,14 @@ function LoginForm() {
 
     toast.success("Đăng nhập thành công!");
     setIsLoading(false);
-    // Small delay to ensure auth state is updated
+
+    // Navigate based on user type
     setTimeout(() => {
-      router.push(redirect);
+      if (isTeacher) {
+        router.push("/teacher");
+      } else {
+        router.push(redirect === "/" ? "/exams" : redirect);
+      }
     }, 100);
   };
 

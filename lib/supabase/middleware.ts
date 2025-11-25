@@ -39,37 +39,23 @@ export async function updateSession(request: NextRequest) {
 
   // Protected routes
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
-  const isTeacherPage = request.nextUrl.pathname.startsWith('/teacher');
   const isStudentExamPage = request.nextUrl.pathname.startsWith('/student');
+  // Note: Teacher pages use localStorage auth (not Supabase), so we don't protect them here.
+  // The teacher dashboard handles its own auth check on the client side.
 
-  // If user is not logged in and trying to access protected routes
-  if (!user && (isTeacherPage || isStudentExamPage)) {
+  // If user is not logged in and trying to access student protected routes
+  if (!user && isStudentExamPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
     url.searchParams.set('redirect', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
-  // If user is logged in and trying to access auth pages, redirect to home
+  // If user is logged in and trying to access auth pages, redirect to exams
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/exams';
     return NextResponse.redirect(url);
-  }
-
-  // Check role for teacher pages
-  if (user && isTeacherPage) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'teacher') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/';
-      return NextResponse.redirect(url);
-    }
   }
 
   return supabaseResponse;

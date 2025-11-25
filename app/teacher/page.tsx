@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -32,7 +39,7 @@ export default function TeacherDashboard() {
   const router = useRouter();
   const { exams, deleteExam, results } = useExamStore();
   const [mounted, setMounted] = useState(false);
-  const { isTeacher, isLoading: authLoading, profile } = useAuth();
+  const { isTeacher, isLoading: authLoading, teacherProfile } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -67,7 +74,7 @@ export default function TeacherDashboard() {
   }
 
   // Show login prompt if not authenticated as teacher
-  if (!isTeacher || !profile) {
+  if (!isTeacher) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
@@ -79,16 +86,14 @@ export default function TeacherDashboard() {
               </div>
               <CardTitle>Đăng nhập để tiếp tục</CardTitle>
               <CardDescription>
-                Bạn cần đăng nhập với tài khoản giáo viên để truy cập trang quản lý đề thi
+                Bạn cần đăng nhập với tài khoản giáo viên để truy cập trang quản
+                lý đề thi
               </CardDescription>
             </CardHeader>
-            <CardFooter className="flex-col gap-3">
+            <CardFooter>
               <Button asChild className="w-full">
                 <Link href="/auth/login">Đăng nhập</Link>
               </Button>
-              <p className="text-sm text-gray-500 text-center">
-                Chọn tab "Giáo viên" khi đăng nhập
-              </p>
             </CardFooter>
           </Card>
         </main>
@@ -111,7 +116,8 @@ export default function TeacherDashboard() {
                   Quản lý đề thi
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Xin chào, {profile?.full_name}! Tạo, chỉnh sửa và quản lý các đề thi của bạn.
+                  Xin chào, {teacherProfile?.name}! Tạo, chỉnh sửa và quản lý
+                  các đề thi của bạn.
                 </p>
               </div>
               <div className="flex gap-3">
@@ -136,7 +142,7 @@ export default function TeacherDashboard() {
         <section className="container mx-auto px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
                     <FileText className="h-6 w-6 text-blue-600" />
@@ -149,20 +155,22 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
                     <Eye className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{publishedExams.length}</p>
+                    <p className="text-2xl font-bold">
+                      {publishedExams.length}
+                    </p>
                     <p className="text-sm text-gray-500">Đã xuất bản</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
                     <Edit className="h-6 w-6 text-orange-600" />
@@ -175,7 +183,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
                     <Users className="h-6 w-6 text-purple-600" />
@@ -246,15 +254,22 @@ export default function TeacherDashboard() {
                         <CardContent className="pb-3">
                           <div className="flex flex-wrap gap-2 mb-3">
                             <Badge variant="outline">Lớp {exam.grade}</Badge>
-                            <Badge variant="secondary">{exam.questions.length} câu</Badge>
-                            <Badge variant="secondary">{exam.totalPoints} điểm</Badge>
+                            <Badge variant="secondary">
+                              {exam.questions.length} câu
+                            </Badge>
+                            <Badge variant="secondary">
+                              {exam.totalPoints} điểm
+                            </Badge>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
                             <Clock className="h-4 w-4" />
                             <span>{exam.duration} phút</span>
                             <span className="text-gray-300">•</span>
                             <span>
-                              Tạo {new Date(exam.createdAt).toLocaleDateString("vi-VN")}
+                              Tạo{" "}
+                              {new Date(exam.createdAt).toLocaleDateString(
+                                "vi-VN"
+                              )}
                             </span>
                           </div>
                         </CardContent>
@@ -263,7 +278,9 @@ export default function TeacherDashboard() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => router.push(`/teacher/editor/${exam.id}`)}
+                            onClick={() =>
+                              router.push(`/teacher/editor/${exam.id}`)
+                            }
                           >
                             <Edit className="mr-1 h-4 w-4" />
                             Sửa
@@ -271,7 +288,9 @@ export default function TeacherDashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/student/exam/${exam.id}`)}
+                            onClick={() =>
+                              router.push(`/student/exam/${exam.id}`)
+                            }
                           >
                             <Play className="h-4 w-4" />
                           </Button>
@@ -318,17 +337,24 @@ export default function TeacherDashboard() {
                         <CardContent className="pb-3">
                           <div className="flex flex-wrap gap-2 mb-3">
                             <Badge variant="outline">Lớp {exam.grade}</Badge>
-                            <Badge variant="secondary">{exam.questions.length} câu</Badge>
+                            <Badge variant="secondary">
+                              {exam.questions.length} câu
+                            </Badge>
                           </div>
                           <p className="text-sm text-gray-500">
-                            Cập nhật {new Date(exam.updatedAt).toLocaleDateString("vi-VN")}
+                            Cập nhật{" "}
+                            {new Date(exam.updatedAt).toLocaleDateString(
+                              "vi-VN"
+                            )}
                           </p>
                         </CardContent>
                         <CardFooter className="gap-2 pt-0">
                           <Button
                             size="sm"
                             className="flex-1"
-                            onClick={() => router.push(`/teacher/editor/${exam.id}`)}
+                            onClick={() =>
+                              router.push(`/teacher/editor/${exam.id}`)
+                            }
                           >
                             <Edit className="mr-1 h-4 w-4" />
                             Tiếp tục chỉnh sửa
