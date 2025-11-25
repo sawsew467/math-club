@@ -258,6 +258,7 @@ function QuestionResult({
     userAnswer: userAnswer,
     isCorrect: isCorrect,
     points: question.points,
+    subQuestions: question.subQuestions, // For true-false with multiple statements
   };
 
   return (

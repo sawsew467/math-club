@@ -34,6 +34,12 @@ interface Message {
   content: string;
 }
 
+interface SubQuestion {
+  label: string;
+  content?: string;
+  correct: boolean;
+}
+
 export interface QuestionContextType {
   questionNumber: number;
   question: string; // Raw HTML for display
@@ -46,6 +52,7 @@ export interface QuestionContextType {
   userAnswer?: string | number;
   isCorrect?: boolean;
   points: number;
+  subQuestions?: SubQuestion[]; // For true-false with multiple statements
 }
 
 interface ChatDialogProps {
@@ -281,41 +288,123 @@ export function ChatDialog({
                       </div>
                     )}
 
-                  {/* Answer Summary */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white p-3 rounded-lg border">
-                      <h4 className="font-semibold text-xs text-muted-foreground mb-1">
-                        Đáp án đúng:
-                      </h4>
-                      <div className="text-sm text-green-700">
-                        {questionContext.type === "multiple-choice"
-                          ? String.fromCharCode(
-                              65 + Number(questionContext.correctAnswer)
-                            )
-                          : getCorrectAnswerDisplay()}
+                  {/* True-false with sub-questions */}
+                  {questionContext.type === "true-false" &&
+                    questionContext.subQuestions &&
+                    questionContext.subQuestions.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                          Các mệnh đề:
+                        </h4>
+                        <div className="space-y-2">
+                          {(() => {
+                            // Parse user answers
+                            let userAnswerObj: Record<string, boolean> = {};
+                            try {
+                              if (questionContext.userAnswer) {
+                                userAnswerObj = JSON.parse(
+                                  String(questionContext.userAnswer)
+                                );
+                              }
+                            } catch {
+                              userAnswerObj = {};
+                            }
+
+                            return questionContext.subQuestions!.map((sub) => {
+                              const userSubAnswer = userAnswerObj[sub.label];
+                              const isSubCorrect = userSubAnswer === sub.correct;
+                              const hasAnswered = userSubAnswer !== undefined;
+
+                              return (
+                                <div
+                                  key={sub.label}
+                                  className={`p-2 rounded-lg border text-sm ${
+                                    isSubCorrect
+                                      ? "bg-green-50 border-green-300"
+                                      : hasAnswered
+                                      ? "bg-red-50 border-red-300"
+                                      : "bg-white"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1">
+                                      <span className="font-medium">
+                                        {sub.label})
+                                      </span>{" "}
+                                      {sub.content && (
+                                        <ContentDisplay
+                                          content={sub.content}
+                                          className="inline"
+                                        />
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <Badge
+                                        variant="outline"
+                                        className={
+                                          sub.correct
+                                            ? "bg-green-100 text-green-700 border-green-300"
+                                            : "bg-red-100 text-red-700 border-red-300"
+                                        }
+                                      >
+                                        {sub.correct ? "Đ" : "S"}
+                                      </Badge>
+                                      {isSubCorrect ? (
+                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                      ) : (
+                                        <XCircle className="h-4 w-4 text-red-600" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border">
-                      <h4 className="font-semibold text-xs text-muted-foreground mb-1">
-                        Câu trả lời của bạn:
-                      </h4>
-                      <div
-                        className={`text-sm ${
-                          questionContext.isCorrect
-                            ? "text-green-700"
-                            : "text-red-700"
-                        }`}
-                      >
-                        {questionContext.userAnswer !== undefined
-                          ? questionContext.type === "multiple-choice"
+                    )}
+
+                  {/* Answer Summary - Hide for true-false with sub-questions */}
+                  {!(
+                    questionContext.type === "true-false" &&
+                    questionContext.subQuestions &&
+                    questionContext.subQuestions.length > 0
+                  ) && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white p-3 rounded-lg border">
+                        <h4 className="font-semibold text-xs text-muted-foreground mb-1">
+                          Đáp án đúng:
+                        </h4>
+                        <div className="text-sm text-green-700">
+                          {questionContext.type === "multiple-choice"
                             ? String.fromCharCode(
-                                65 + Number(questionContext.userAnswer)
+                                65 + Number(questionContext.correctAnswer)
                               )
-                            : getUserAnswerDisplay()
-                          : "Chưa trả lời"}
+                            : getCorrectAnswerDisplay()}
+                        </div>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border">
+                        <h4 className="font-semibold text-xs text-muted-foreground mb-1">
+                          Câu trả lời của bạn:
+                        </h4>
+                        <div
+                          className={`text-sm ${
+                            questionContext.isCorrect
+                              ? "text-green-700"
+                              : "text-red-700"
+                          }`}
+                        >
+                          {questionContext.userAnswer !== undefined
+                            ? questionContext.type === "multiple-choice"
+                              ? String.fromCharCode(
+                                  65 + Number(questionContext.userAnswer)
+                                )
+                              : getUserAnswerDisplay()
+                            : "Chưa trả lời"}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Result Badge */}
                   <div className="flex items-center gap-2">
