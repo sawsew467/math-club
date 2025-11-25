@@ -353,7 +353,77 @@ function QuestionResult({
           </div>
         )}
 
-        {question.type === 'true-false' && (
+        {question.type === 'true-false' && question.subQuestions && question.subQuestions.length > 0 ? (
+          // True-false with multiple sub-questions
+          <div className="space-y-2">
+            {(() => {
+              // Parse user answers
+              let userAnswerObj: Record<string, boolean> = {};
+              try {
+                if (userAnswer) {
+                  userAnswerObj = JSON.parse(String(userAnswer));
+                }
+              } catch {
+                userAnswerObj = {};
+              }
+
+              return question.subQuestions.map((sub: { label: string; content?: string; correct: boolean }) => {
+                const userSubAnswer = userAnswerObj[sub.label];
+                const isSubCorrect = userSubAnswer === sub.correct;
+                const hasAnswered = userSubAnswer !== undefined;
+
+                return (
+                  <div
+                    key={sub.label}
+                    className={`p-3 rounded-md border ${
+                      isSubCorrect
+                        ? 'bg-green-50 border-green-300'
+                        : hasAnswered
+                        ? 'bg-red-50 border-red-300'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <span className="font-semibold mr-2">{sub.label})</span>
+                        {sub.content && (
+                          <ContentDisplay content={sub.content} className="inline" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                        {/* User's answer */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-gray-500">Bạn chọn:</span>
+                          {hasAnswered ? (
+                            <Badge variant={userSubAnswer ? 'default' : 'secondary'}>
+                              {userSubAnswer ? 'Đúng' : 'Sai'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Chưa trả lời</Badge>
+                          )}
+                        </div>
+                        {/* Correct answer */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-gray-500">Đáp án:</span>
+                          <Badge className={sub.correct ? 'bg-green-600' : 'bg-red-600'}>
+                            {sub.correct ? 'Đúng' : 'Sai'}
+                          </Badge>
+                        </div>
+                        {/* Result icon */}
+                        {isSubCorrect ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        ) : question.type === 'true-false' && (
+          // Simple true-false (no sub-questions)
           <div className="space-y-2">
             <div className={`p-2 rounded-md ${
               question.correctAnswer === 0 ? 'bg-green-50 border border-green-300' :

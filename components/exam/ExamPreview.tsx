@@ -1,12 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuestionEditor } from "./QuestionEditor";
 import { Question } from "@/types/exam";
-import { CheckCircle, AlertCircle, ChevronDown, ChevronUp, ImageIcon } from "lucide-react";
+import {
+  CheckCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+} from "lucide-react";
 
 interface ExamPreviewProps {
   questions: Question[];
@@ -43,15 +55,15 @@ export function ExamPreview({
   }
 
   return (
-    <Card className="mb-6 border-green-500 border-2">
-      <CardHeader className="bg-green-50">
+    <Card className="mb-6 border-green-500 border-2 gap-0">
+      <CardHeader className="bg-green-50 py-4">
         <CardTitle className="flex items-center gap-2 text-green-800">
           <CheckCircle className="h-5 w-5" />
           Đề thi đã được trích xuất - Vui lòng kiểm tra
         </CardTitle>
         <CardDescription className="text-green-700">
-          AI đã trích xuất <strong>{questions.length} câu hỏi</strong>.
-          Vui lòng xem lại và chỉnh sửa nếu cần thiết trước khi lưu.
+          AI đã trích xuất <strong>{questions.length} câu hỏi</strong>. Vui lòng
+          xem lại và chỉnh sửa nếu cần thiết trước khi lưu.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
@@ -59,8 +71,8 @@ export function ExamPreview({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Quan trọng:</strong> AI có thể mắc lỗi trong quá trình trích xuất.
-            Hãy kiểm tra kỹ từng câu hỏi, đặc biệt là:
+            <strong>Quan trọng:</strong> AI có thể mắc lỗi trong quá trình trích
+            xuất. Hãy kiểm tra kỹ từng câu hỏi, đặc biệt là:
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Đáp án đúng đã được chọn chính xác chưa</li>
               <li>Công thức toán có hiển thị đúng không</li>
@@ -73,34 +85,22 @@ export function ExamPreview({
         {/* Actions */}
         <div className="flex justify-between items-center border-b pb-4">
           <div className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
-            <span>Tổng số câu: <strong>{questions.length}</strong></span>
-            <span>Tổng điểm: <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong></span>
-            {questions.filter(q => q.hasImage).length > 0 && (
+            <span>
+              Tổng số câu: <strong>{questions.length}</strong>
+            </span>
+            <span>
+              Tổng điểm:{" "}
+              <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong>
+            </span>
+            {questions.filter((q) => q.hasImage).length > 0 && (
               <span className="text-orange-600 flex items-center gap-1">
                 <ImageIcon className="h-4 w-4" />
-                <strong>{questions.filter(q => q.hasImage).length}</strong> câu có hình
+                <strong>
+                  {questions.filter((q) => q.hasImage).length}
+                </strong>{" "}
+                câu có hình
               </span>
             )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={toggleExpandAll}
-            >
-              {expandedAll ? (
-                <>
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  Thu gọn tất cả
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Mở rộng tất cả
-                </>
-              )}
-            </Button>
           </div>
         </div>
 
@@ -128,12 +128,7 @@ export function ExamPreview({
             <CheckCircle className="h-5 w-5 mr-2" />
             Xác nhận và sử dụng đề thi này
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            size="lg"
-          >
+          <Button type="button" variant="outline" onClick={onCancel} size="lg">
             Hủy và import lại
           </Button>
         </div>

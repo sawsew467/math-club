@@ -16,7 +16,7 @@ import { useExamStore } from '@/store/exam-store';
 import { Clock, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { ExamResult } from '@/types/exam';
+import { ExamResult, SubQuestion } from '@/types/exam';
 
 export default function ExamTakingPage() {
   const router = useRouter();
@@ -100,12 +100,67 @@ export default function ExamTakingPage() {
     }
   };
 
+  // Handle true-false sub-question answer change
+  const handleTrueFalseAnswer = (subLabel: string, value: boolean) => {
+    if (!currentQuestion) return;
+
+    // Get current answers or create empty object
+    const currentAnswerStr = userAnswers.get(currentQuestion.id) as string || '{}';
+    let currentAnswers: Record<string, boolean> = {};
+    try {
+      currentAnswers = JSON.parse(currentAnswerStr);
+    } catch {
+      currentAnswers = {};
+    }
+
+    // Update the specific sub-question answer
+    currentAnswers[subLabel] = value;
+
+    // Save as JSON string
+    setUserAnswer(currentQuestion.id, JSON.stringify(currentAnswers));
+  };
+
+  // Get true-false answer for a specific sub-question
+  const getTrueFalseAnswer = (subLabel: string): boolean | null => {
+    if (!currentQuestion) return null;
+
+    const answerStr = userAnswers.get(currentQuestion.id) as string;
+    if (!answerStr) return null;
+
+    try {
+      const answers = JSON.parse(answerStr);
+      return answers[subLabel] ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const goToQuestion = (index: number) => {
     setCurrentQuestionIndex(index);
   };
 
+  // Check if a true-false question with subQuestions is answered
+  const isTrueFalseAnswered = (questionId: string, subQuestions: SubQuestion[] | undefined) => {
+    const answerStr = userAnswers.get(questionId) as string;
+    if (!answerStr || !subQuestions) return false;
+
+    try {
+      const answers = JSON.parse(answerStr);
+      // Check if all sub-questions have been answered
+      return subQuestions.every(sub => answers[sub.label] !== undefined);
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = () => {
-    const unanswered = exam.questions.filter(q => !userAnswers.get(q.id));
+    // Check unanswered questions (handle true-false with subQuestions differently)
+    const unanswered = exam.questions.filter(q => {
+      if (q.type === 'true-false' && q.subQuestions && q.subQuestions.length > 0) {
+        return !isTrueFalseAnswered(q.id, q.subQuestions);
+      }
+      return !userAnswers.get(q.id);
+    });
 
     if (unanswered.length > 0) {
       const confirmSubmit = confirm(
@@ -119,6 +174,44 @@ export default function ExamTakingPage() {
     let totalScore = 0;
     const answers = exam.questions.map(question => {
       const userAnswer = userAnswers.get(question.id);
+
+      // Handle true-false with subQuestions
+      if (question.type === 'true-false' && question.subQuestions && question.subQuestions.length > 0) {
+        let subCorrect = 0;
+        const totalSubs = question.subQuestions.length;
+
+        try {
+          const userAnswerObj = userAnswer ? JSON.parse(userAnswer as string) : {};
+
+          question.subQuestions.forEach(sub => {
+            if (userAnswerObj[sub.label] === sub.correct) {
+              subCorrect++;
+            }
+          });
+        } catch {
+          // Invalid JSON, all wrong
+        }
+
+        // All sub-questions must be correct for full points
+        const isAllCorrect = subCorrect === totalSubs;
+        // Partial scoring: proportional points based on correct sub-questions
+        const partialScore = (subCorrect / totalSubs) * question.points;
+
+        if (isAllCorrect) {
+          correctAnswers++;
+        }
+        totalScore += partialScore;
+
+        return {
+          questionId: question.id,
+          userAnswer: userAnswer || '',
+          isCorrect: isAllCorrect,
+          subCorrect,
+          totalSubs
+        };
+      }
+
+      // Handle other question types
       const isCorrect = userAnswer !== undefined &&
         String(userAnswer) === String(question.correctAnswer);
 
@@ -269,54 +362,100 @@ export default function ExamTakingPage() {
                         minHeight="250px"
                       />
                     </div>
-                  ) : (
+                  ) : currentQuestion.type === 'true-false' && currentQuestion.subQuestions && currentQuestion.subQuestions.length > 0 ? (
+                    // True-false with multiple sub-questions
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600 mb-4">
+                        Chọn Đúng hoặc Sai cho mỗi mệnh đề:
+                      </p>
+                      {currentQuestion.subQuestions.map((sub) => {
+                        const answer = getTrueFalseAnswer(sub.label);
+                        return (
+                          <div
+                            key={sub.label}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                          >
+                            <div className="flex-1 mr-4">
+                              <span className="font-semibold mr-2">{sub.label})</span>
+                              {sub.content && (
+                                <ContentDisplay content={sub.content} className="inline" />
+                              )}
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={answer === true ? 'default' : 'outline'}
+                                onClick={() => handleTrueFalseAnswer(sub.label, true)}
+                                className={answer === true ? 'bg-green-600 hover:bg-green-700' : ''}
+                              >
+                                Đúng
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={answer === false ? 'default' : 'outline'}
+                                onClick={() => handleTrueFalseAnswer(sub.label, false)}
+                                className={answer === false ? 'bg-red-600 hover:bg-red-700' : ''}
+                              >
+                                Sai
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : currentQuestion.type === 'true-false' ? (
+                    // Simple true-false (no sub-questions)
                     <RadioGroup
                       value={String(userAnswers.get(currentQuestion.id) || '')}
                       onValueChange={handleAnswerChange}
                     >
-                      {currentQuestion.type === 'true-false' ? (
-                        <>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="0" id="true" />
-                            <Label htmlFor="true" className="font-normal cursor-pointer">
-                              Đúng
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="1" id="false" />
-                            <Label htmlFor="false" className="font-normal cursor-pointer">
-                              Sai
-                            </Label>
-                          </div>
-                        </>
-                      ) : currentQuestion.type === 'multiple-choice' ? (
-                        currentQuestion.options.map((option, idx) => (
-                          <div key={idx} className="flex items-start space-x-2">
-                            <RadioGroupItem value={String(idx)} id={`option-${idx}`} />
-                            <Label
-                              htmlFor={`option-${idx}`}
-                              className="font-normal cursor-pointer"
-                            >
-                              <span className="font-semibold mr-2">
-                                {String.fromCharCode(65 + idx)}.
-                              </span>
-                              <ContentDisplay content={option} />
-                            </Label>
-                          </div>
-                        ))
-                      ) : (
-                        <div>
-                          <Label>Điền đáp án:</Label>
-                          <input
-                            type="text"
-                            className="mt-1 w-full px-3 py-2 border rounded-md"
-                            value={String(userAnswers.get(currentQuestion.id) || '')}
-                            onChange={(e) => handleAnswerChange(e.target.value)}
-                            placeholder="Nhập đáp án..."
-                          />
-                        </div>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="0" id="true" />
+                        <Label htmlFor="true" className="font-normal cursor-pointer">
+                          Đúng
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="1" id="false" />
+                        <Label htmlFor="false" className="font-normal cursor-pointer">
+                          Sai
+                        </Label>
+                      </div>
                     </RadioGroup>
+                  ) : currentQuestion.type === 'multiple-choice' ? (
+                    <RadioGroup
+                      value={String(userAnswers.get(currentQuestion.id) || '')}
+                      onValueChange={handleAnswerChange}
+                    >
+                      {currentQuestion.options.map((option, idx) => (
+                        <div key={idx} className="flex items-start space-x-2">
+                          <RadioGroupItem value={String(idx)} id={`option-${idx}`} />
+                          <Label
+                            htmlFor={`option-${idx}`}
+                            className="font-normal cursor-pointer"
+                          >
+                            <span className="font-semibold mr-2">
+                              {String.fromCharCode(65 + idx)}.
+                            </span>
+                            <ContentDisplay content={option} />
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    // Fill-in type
+                    <div>
+                      <Label>Điền đáp án:</Label>
+                      <input
+                        type="text"
+                        className="mt-1 w-full px-3 py-2 border rounded-md"
+                        value={String(userAnswers.get(currentQuestion.id) || '')}
+                        onChange={(e) => handleAnswerChange(e.target.value)}
+                        placeholder="Nhập đáp án..."
+                      />
+                    </div>
                   )}
 
                   <div className="flex justify-between pt-4">
@@ -359,7 +498,13 @@ export default function ExamTakingPage() {
             <CardContent>
               <div className="grid grid-cols-5 gap-2">
                 {exam.questions.map((question, idx) => {
-                  const isAnswered = userAnswers.has(question.id);
+                  // Check if answered (handle true-false with subQuestions)
+                  let isAnswered = false;
+                  if (question.type === 'true-false' && question.subQuestions && question.subQuestions.length > 0) {
+                    isAnswered = isTrueFalseAnswered(question.id, question.subQuestions);
+                  } else {
+                    isAnswered = userAnswers.has(question.id) && userAnswers.get(question.id) !== '';
+                  }
                   const isCurrent = idx === currentQuestionIndex;
 
                   return (

@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +15,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { QuestionEditor } from "@/components/exam/QuestionEditor";
 import { ExamImporter } from "@/components/exam/ExamImporter";
 import { ExamPreview } from "@/components/exam/ExamPreview";
 import { useExamStore } from "@/store/exam-store";
 import { Question, Exam } from "@/types/exam";
-import { Plus, Save, Eye, Upload, Edit } from "lucide-react";
+import {
+  Plus,
+  Save,
+  Eye,
+  Upload,
+  Edit,
+  ArrowLeft,
+  Clock,
+  FileText,
+  GraduationCap,
+  Settings,
+  CheckCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -139,180 +146,285 @@ export default function ExamEditorPage() {
 
     addExam(exam);
     toast.success(publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được lưu!");
-    router.push("/");
+    router.push("/teacher");
   };
 
+  const questionCount = examData.questions?.length || 0;
+  const totalPoints = calculateTotalPoints();
+
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Tạo đề thi mới</CardTitle>
-          <CardDescription>
-            Soạn thảo đề thi với hỗ trợ công thức toán học
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Exam Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="title">Tiêu đề đề thi</Label>
-              <Input
-                id="title"
-                value={examData.title}
-                onChange={(e) =>
-                  setExamData((prev) => ({ ...prev, title: e.target.value }))
-                }
-                placeholder="Ví dụ: Đề kiểm tra giữa kỳ 1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="grade">Khối lớp</Label>
-              <Select
-                value={String(examData.grade)}
-                onValueChange={(value) =>
-                  setExamData((prev) => ({ ...prev, grade: Number(value) }))
-                }
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/teacher")}
+                className="gap-2"
               >
-                <SelectTrigger id="grade">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">Lớp 10</SelectItem>
-                  <SelectItem value="11">Lớp 11</SelectItem>
-                  <SelectItem value="12">Lớp 12</SelectItem>
-                </SelectContent>
-              </Select>
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Quay lại</span>
+              </Button>
+              <div className="h-6 w-px bg-gray-200" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="font-semibold text-gray-900 text-sm sm:text-base">
+                    Tạo đề thi mới
+                  </h1>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="hidden md:flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <FileText className="h-4 w-4" />
+                <span>{questionCount} câu hỏi</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckCircle className="h-4 w-4" />
+                <span>{totalPoints} điểm</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="h-4 w-4" />
+                <span>{examData.duration} phút</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSave(false)}
+                className="hidden sm:flex"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Lưu nháp
+              </Button>
+              <Button size="sm" onClick={() => handleSave(true)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Xuất bản
+              </Button>
             </div>
           </div>
+        </div>
+      </header>
 
-          <div>
-            <Label htmlFor="description">Mô tả</Label>
-            <Textarea
-              id="description"
-              value={examData.description}
-              onChange={(e) =>
-                setExamData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              placeholder="Mô tả ngắn về đề thi..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="duration">Thời gian làm bài (phút)</Label>
-              <Input
-                id="duration"
-                type="number"
-                value={examData.duration}
-                onChange={(e) =>
-                  setExamData((prev) => ({
-                    ...prev,
-                    duration: Number(e.target.value),
-                  }))
-                }
-                min="15"
-                max="180"
-              />
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Mobile Stats */}
+        <div className="md:hidden mb-4">
+          <div className="flex items-center justify-center gap-4 p-3 bg-white rounded-lg border">
+            <div className="flex items-center gap-1 text-sm">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <span className="font-medium">{questionCount}</span>
+              <span className="text-gray-500">câu</span>
             </div>
-            <div>
-              <Label htmlFor="author">Tác giả</Label>
-              <Input
-                id="author"
-                value={examData.author}
-                onChange={(e) =>
-                  setExamData((prev) => ({ ...prev, author: e.target.value }))
-                }
-                placeholder="Tên giáo viên"
-              />
+            <div className="h-4 w-px bg-gray-200" />
+            <div className="flex items-center gap-1 text-sm">
+              <CheckCircle className="h-4 w-4 text-gray-400" />
+              <span className="font-medium">{totalPoints}</span>
+              <span className="text-gray-500">điểm</span>
+            </div>
+            <div className="h-4 w-px bg-gray-200" />
+            <div className="flex items-center gap-1 text-sm">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <span className="font-medium">{examData.duration}</span>
+              <span className="text-gray-500">phút</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Import Preview - Show when questions are imported */}
-      {importedQuestions && (
-        <ExamPreview
-          questions={importedQuestions}
-          onQuestionsUpdate={setImportedQuestions}
-          onAccept={handleAcceptImport}
-          onCancel={handleCancelImport}
-        />
-      )}
+        {/* Exam Info Card */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-gray-500" />
+              <CardTitle className="text-lg">Thông tin đề thi</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <Label htmlFor="title">Tiêu đề đề thi *</Label>
+                <Input
+                  id="title"
+                  value={examData.title}
+                  onChange={(e) =>
+                    setExamData((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                  placeholder="Ví dụ: Đề kiểm tra giữa kỳ 1 - Chương Hàm số"
+                  className="mt-1"
+                />
+              </div>
 
-      {/* Questions Section */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-4"
-      >
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="import" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Import từ PDF
-          </TabsTrigger>
-          <TabsTrigger value="manual" className="flex items-center gap-2">
-            <Edit className="h-4 w-4" />
-            Tạo thủ công
-          </TabsTrigger>
-        </TabsList>
+              <div className="sm:col-span-2">
+                <Label htmlFor="description">Mô tả *</Label>
+                <Textarea
+                  id="description"
+                  value={examData.description}
+                  onChange={(e) =>
+                    setExamData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  placeholder="Mô tả ngắn về nội dung, phạm vi kiến thức của đề thi..."
+                  rows={2}
+                  className="mt-1"
+                />
+              </div>
 
-        <TabsContent value="import" className="space-y-4">
-          <ExamImporter onImportSuccess={handleImportSuccess} />
-        </TabsContent>
+              <div>
+                <Label htmlFor="grade">Khối lớp</Label>
+                <Select
+                  value={String(examData.grade)}
+                  onValueChange={(value) =>
+                    setExamData((prev) => ({ ...prev, grade: Number(value) }))
+                  }
+                >
+                  <SelectTrigger id="grade" className="mt-1 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">Lớp 10</SelectItem>
+                    <SelectItem value="11">Lớp 11</SelectItem>
+                    <SelectItem value="12">Lớp 12</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <TabsContent value="manual" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">
-              Danh sách câu hỏi ({examData.questions?.length || 0} câu -{" "}
-              {calculateTotalPoints()} điểm)
-            </h2>
-            <Button onClick={addQuestion}>
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm câu hỏi
-            </Button>
-          </div>
+              <div>
+                <Label htmlFor="duration">Thời gian (phút)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={examData.duration}
+                  onChange={(e) =>
+                    setExamData((prev) => ({
+                      ...prev,
+                      duration: Number(e.target.value),
+                    }))
+                  }
+                  min="15"
+                  max="180"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {examData.questions?.map((question, index) => (
-            <QuestionEditor
-              key={question.id}
-              question={question}
-              index={index}
-              onUpdate={(q) => updateQuestion(index, q)}
-              onDelete={() => deleteQuestion(index)}
-            />
-          ))}
+        {/* Import Preview - Show when questions are imported */}
+        {importedQuestions && (
+          <ExamPreview
+            questions={importedQuestions}
+            onQuestionsUpdate={setImportedQuestions}
+            onAccept={handleAcceptImport}
+            onCancel={handleCancelImport}
+          />
+        )}
 
-          {examData.questions?.length === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-muted-foreground mb-4">
-                  Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu hoặc
-                  chuyển sang tab "Import từ PDF".
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+        {/* Questions Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-gray-500" />
+                <CardTitle className="text-lg">Câu hỏi</CardTitle>
+                {questionCount > 0 && (
+                  <Badge variant="secondary">
+                    {questionCount} câu - {totalPoints} điểm
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-4"
+            >
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="import" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Import từ PDF
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <Edit className="h-4 w-4" />
+                  Tạo thủ công
+                </TabsTrigger>
+              </TabsList>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-4 mt-8">
-        <Button variant="outline" onClick={() => router.push("/")}>
-          Hủy
-        </Button>
-        <Button variant="outline" onClick={() => handleSave(false)}>
-          <Save className="mr-2 h-4 w-4" />
-          Lưu nháp
-        </Button>
-        <Button onClick={() => handleSave(true)}>
-          <Eye className="mr-2 h-4 w-4" />
-          Xuất bản
-        </Button>
-      </div>
+              <TabsContent value="import" className="space-y-4">
+                <ExamImporter onImportSuccess={handleImportSuccess} />
+              </TabsContent>
+
+              <TabsContent value="manual" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500">
+                    Thêm và chỉnh sửa từng câu hỏi thủ công
+                  </p>
+                  <Button onClick={addQuestion} size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm câu hỏi
+                  </Button>
+                </div>
+
+                {examData.questions?.map((question, index) => (
+                  <QuestionEditor
+                    key={question.id}
+                    question={question}
+                    index={index}
+                    onUpdate={(q) => updateQuestion(index, q)}
+                    onDelete={() => deleteQuestion(index)}
+                  />
+                ))}
+
+                {questionCount === 0 && (
+                  <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 mb-2">Chưa có câu hỏi nào</p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Nhấn &quot;Thêm câu hỏi&quot; để bắt đầu hoặc chuyển sang
+                      tab &quot;Import từ PDF&quot;
+                    </p>
+                    <Button onClick={addQuestion} variant="outline" size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Thêm câu hỏi đầu tiên
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Bottom Actions - Mobile */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => handleSave(false)}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Lưu nháp
+          </Button>
+          <Button className="flex-1" onClick={() => handleSave(true)}>
+            <Eye className="h-4 w-4 mr-2" />
+            Xuất bản
+          </Button>
+        </div>
+
+        {/* Spacer for mobile bottom actions */}
+        <div className="sm:hidden h-20" />
+      </main>
     </div>
   );
 }
