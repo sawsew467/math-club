@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuestionEditor } from '@/components/exam/QuestionEditor';
+import { ExamImporter } from '@/components/exam/ExamImporter';
+import { ExamPreview } from '@/components/exam/ExamPreview';
 import { useExamStore } from '@/store/exam-store';
 import { Question, Exam } from '@/types/exam';
-import { Plus, Save, Eye } from 'lucide-react';
+import { Plus, Save, Eye, Upload, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,6 +32,10 @@ export default function ExamEditorPage() {
     author: 'Giáo viên',
     isPublished: false,
   });
+
+  // State for imported questions
+  const [importedQuestions, setImportedQuestions] = useState<Question[] | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('manual');
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -66,6 +73,28 @@ export default function ExamEditorPage() {
 
   const calculateTotalPoints = () => {
     return examData.questions?.reduce((sum, q) => sum + q.points, 0) || 0;
+  };
+
+  const handleImportSuccess = (questions: Question[]) => {
+    setImportedQuestions(questions);
+    toast.success('Đã trích xuất câu hỏi thành công! Vui lòng kiểm tra lại.');
+  };
+
+  const handleAcceptImport = () => {
+    if (importedQuestions) {
+      setExamData(prev => ({
+        ...prev,
+        questions: importedQuestions,
+      }));
+      setImportedQuestions(null);
+      setActiveTab('manual');
+      toast.success('Đã thêm tất cả câu hỏi vào đề thi!');
+    }
+  };
+
+  const handleCancelImport = () => {
+    setImportedQuestions(null);
+    toast.info('Đã hủy import. Bạn có thể thử lại với file khác.');
   };
 
   const handleSave = (publish = false) => {
@@ -174,38 +203,65 @@ export default function ExamEditorPage() {
         </CardContent>
       </Card>
 
-      {/* Questions */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold">
-            Danh sách câu hỏi ({examData.questions?.length || 0} câu - {calculateTotalPoints()} điểm)
-          </h2>
-          <Button onClick={addQuestion}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm câu hỏi
-          </Button>
-        </div>
+      {/* Import Preview - Show when questions are imported */}
+      {importedQuestions && (
+        <ExamPreview
+          questions={importedQuestions}
+          onQuestionsUpdate={setImportedQuestions}
+          onAccept={handleAcceptImport}
+          onCancel={handleCancelImport}
+        />
+      )}
 
-        {examData.questions?.map((question, index) => (
-          <QuestionEditor
-            key={question.id}
-            question={question}
-            index={index}
-            onUpdate={(q) => updateQuestion(index, q)}
-            onDelete={() => deleteQuestion(index)}
-          />
-        ))}
+      {/* Questions Section */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Import từ PDF
+          </TabsTrigger>
+          <TabsTrigger value="manual" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Tạo thủ công
+          </TabsTrigger>
+        </TabsList>
 
-        {examData.questions?.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        <TabsContent value="import" className="space-y-4">
+          <ExamImporter onImportSuccess={handleImportSuccess} />
+        </TabsContent>
+
+        <TabsContent value="manual" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">
+              Danh sách câu hỏi ({examData.questions?.length || 0} câu - {calculateTotalPoints()} điểm)
+            </h2>
+            <Button onClick={addQuestion}>
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm câu hỏi
+            </Button>
+          </div>
+
+          {examData.questions?.map((question, index) => (
+            <QuestionEditor
+              key={question.id}
+              question={question}
+              index={index}
+              onUpdate={(q) => updateQuestion(index, q)}
+              onDelete={() => deleteQuestion(index)}
+            />
+          ))}
+
+          {examData.questions?.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu hoặc chuyển sang tab "Import từ PDF".
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Actions */}
       <div className="flex justify-end gap-4 mt-8">
