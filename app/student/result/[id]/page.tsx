@@ -237,12 +237,17 @@ function QuestionResult({
   };
 
   const questionContext = {
-    question: stripHtml(question.question),
-    correctAnswer: typeof question.correctAnswer === 'string'
-      ? stripHtml(question.correctAnswer)
-      : String(question.correctAnswer),
-    explanation: stripHtml(question.explanation),
-    userAnswer: userAnswer ? stripHtml(String(userAnswer)) : undefined,
+    questionNumber: index + 1,
+    question: question.question, // Raw HTML for display
+    questionText: stripHtml(question.question), // Stripped for AI
+    type: question.type,
+    options: question.options,
+    correctAnswer: question.correctAnswer,
+    explanation: question.explanation, // Raw HTML for display
+    explanationText: stripHtml(question.explanation), // Stripped for AI
+    userAnswer: userAnswer,
+    isCorrect: isCorrect,
+    points: question.points,
   };
 
   return (
