@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useExamStore } from "@/store/exam-store";
 import { initSampleData } from "@/lib/sample-data";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   PlusCircle,
   BookOpen,
@@ -31,19 +32,10 @@ export default function TeacherDashboard() {
   const router = useRouter();
   const { exams, deleteExam, results } = useExamStore();
   const [mounted, setMounted] = useState(false);
-  const [isTeacher, setIsTeacher] = useState(false);
+  const { isTeacher, isLoading: authLoading, profile } = useAuth();
 
   useEffect(() => {
     setMounted(true);
-
-    // Check if user is logged in as teacher
-    const mockUser = localStorage.getItem("mockUser");
-    if (mockUser) {
-      const user = JSON.parse(mockUser);
-      if (user.role === "teacher") {
-        setIsTeacher(true);
-      }
-    }
   }, []);
 
   const publishedExams = exams.filter((exam) => exam.isPublished);
@@ -66,12 +58,16 @@ export default function TeacherDashboard() {
     }
   };
 
-  if (!mounted) {
-    return null;
+  if (!mounted || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   // Show login prompt if not authenticated as teacher
-  if (!isTeacher) {
+  if (!isTeacher || !profile) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
@@ -115,7 +111,7 @@ export default function TeacherDashboard() {
                   Quản lý đề thi
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Tạo, chỉnh sửa và quản lý các đề thi của bạn
+                  Xin chào, {profile?.full_name}! Tạo, chỉnh sửa và quản lý các đề thi của bạn.
                 </p>
               </div>
               <div className="flex gap-3">

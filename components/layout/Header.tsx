@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,30 +23,8 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface MockUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
-// Mock auth hook - will be replaced with Supabase later
-const useAuth = () => {
-  const [user, setUser] = useState<MockUser | null>(null);
-  const [isTeacher, setIsTeacher] = useState(false);
-
-  useEffect(() => {
-    const mockUser = localStorage.getItem("mockUser");
-    if (mockUser) {
-      const parsed = JSON.parse(mockUser);
-      setUser(parsed);
-      setIsTeacher(parsed.role === "teacher");
-    }
-  }, []);
-
-  return { user, isTeacher };
-};
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const navigation = [
   { name: "Trang chủ", href: "/", icon: null },
@@ -56,12 +34,15 @@ const navigation = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isTeacher } = useAuth();
+  const { user, profile, isTeacher, signOut, isLoading } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("mockUser");
-    window.location.href = "/";
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Đã đăng xuất");
+    router.push("/");
+    router.refresh();
   };
 
   return (
@@ -98,7 +79,9 @@ export function Header() {
 
         {/* Right side - Auth */}
         <div className="flex items-center gap-2">
-          {user ? (
+          {isLoading ? (
+            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
+          ) : user && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
@@ -106,17 +89,15 @@ export function Header() {
                     <User className="h-4 w-4 text-blue-600" />
                   </div>
                   <span className="hidden md:inline text-sm font-medium">
-                    {user.name}
+                    {profile.full_name}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Tài khoản
-                  </Link>
-                </DropdownMenuItem>
+                <div className="px-2 py-1.5 text-sm text-gray-500">
+                  {profile.role === "teacher" ? "Giáo viên" : `Học sinh lớp ${profile.grade}`}
+                </div>
+                <DropdownMenuSeparator />
                 {isTeacher && (
                   <DropdownMenuItem asChild>
                     <Link href="/teacher" className="cursor-pointer">
@@ -126,7 +107,7 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+                <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
                   Đăng xuất
                 </DropdownMenuItem>
@@ -173,10 +154,10 @@ export function Header() {
                 ))}
 
                 <div className="border-t pt-4 mt-4">
-                  {user ? (
+                  {user && profile ? (
                     <>
                       <div className="px-4 py-2 text-sm text-gray-500">
-                        Xin chào, {user.name}
+                        Xin chào, {profile.full_name}
                       </div>
                       {isTeacher && (
                         <Link
