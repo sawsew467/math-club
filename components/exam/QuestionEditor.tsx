@@ -102,18 +102,27 @@ export function QuestionEditor({
                   className="mt-2 max-w-md rounded border"
                 />
               )}
+              {question.imageDescription && !question.imageUrl && (
+                <div className="mt-2 p-3 bg-yellow-50 rounded border border-yellow-200">
+                  <p className="text-sm text-yellow-800">
+                    <span className="font-medium">Mô tả hình:</span> {question.imageDescription}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
               <h4 className="font-semibold mb-2">Đáp án:</h4>
               {question.type === "essay" ? (
                 <div className="space-y-2">
+                  {/* Sample Answer - from sampleAnswer or correctAnswer */}
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-sm font-medium mb-1">Đáp án mẫu:</p>
                     <ContentDisplay
-                      content={String(question.correctAnswer || "")}
+                      content={question.sampleAnswer || String(question.correctAnswer || "")}
                     />
                   </div>
+                  {/* Rubric - grading criteria */}
                   {question.rubric && (
                     <div className="p-3 bg-blue-50 rounded">
                       <p className="text-sm font-medium mb-1">Tiêu chí chấm:</p>
@@ -133,7 +142,29 @@ export function QuestionEditor({
                   ))}
                 </RadioGroup>
               ) : question.type === "true-false" ? (
-                <div>{question.correctAnswer === 0 ? "Đúng" : "Sai"}</div>
+                <div className="space-y-2">
+                  {question.subQuestions && question.subQuestions.length > 0 ? (
+                    question.subQuestions.map((sub, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="font-semibold">{sub.label})</span>
+                        {sub.content && (
+                          <span className="flex-1">
+                            <ContentDisplay content={sub.content} />
+                          </span>
+                        )}
+                        <span className={`px-2 py-1 rounded text-sm font-medium ${
+                          sub.correct
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}>
+                          {sub.correct ? "Đúng" : "Sai"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span>{question.correctAnswer === 0 ? "Đúng" : "Sai"}</span>
+                  )}
+                </div>
               ) : (
                 <div>Điền vào: {String(question.correctAnswer)}</div>
               )}
@@ -278,23 +309,55 @@ export function QuestionEditor({
             )}
 
             {question.type === "true-false" && (
-              <div>
-                <Label>Đáp án đúng</Label>
-                <RadioGroup
-                  value={String(question.correctAnswer)}
-                  onValueChange={(value) =>
-                    updateField("correctAnswer", Number(value))
-                  }
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="0" />
-                    <Label>Đúng</Label>
+              <div className="space-y-4">
+                <Label>Các mệnh đề đúng/sai</Label>
+                {question.subQuestions && question.subQuestions.length > 0 ? (
+                  <div className="space-y-3">
+                    {question.subQuestions.map((sub, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+                        <span className="font-semibold text-sm min-w-[20px]">{sub.label})</span>
+                        <div className="flex-1">
+                          {sub.content && (
+                            <ContentDisplay content={sub.content} />
+                          )}
+                        </div>
+                        <Select
+                          value={sub.correct ? "true" : "false"}
+                          onValueChange={(value) => {
+                            const newSubQuestions = [...(question.subQuestions || [])];
+                            newSubQuestions[idx] = { ...sub, correct: value === "true" };
+                            updateField("subQuestions", newSubQuestions);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Đúng</SelectItem>
+                            <SelectItem value="false">Sai</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1" />
-                    <Label>Sai</Label>
-                  </div>
-                </RadioGroup>
+                ) : (
+                  // Fallback for simple true-false
+                  <RadioGroup
+                    value={String(question.correctAnswer)}
+                    onValueChange={(value) =>
+                      updateField("correctAnswer", Number(value))
+                    }
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="0" />
+                      <Label>Đúng</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="1" />
+                      <Label>Sai</Label>
+                    </div>
+                  </RadioGroup>
+                )}
               </div>
             )}
 

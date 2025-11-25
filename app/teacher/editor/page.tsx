@@ -1,63 +1,77 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QuestionEditor } from '@/components/exam/QuestionEditor';
-import { ExamImporter } from '@/components/exam/ExamImporter';
-import { ExamPreview } from '@/components/exam/ExamPreview';
-import { useExamStore } from '@/store/exam-store';
-import { Question, Exam } from '@/types/exam';
-import { Plus, Save, Eye, Upload, Edit } from 'lucide-react';
-import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QuestionEditor } from "@/components/exam/QuestionEditor";
+import { ExamImporter } from "@/components/exam/ExamImporter";
+import { ExamPreview } from "@/components/exam/ExamPreview";
+import { useExamStore } from "@/store/exam-store";
+import { Question, Exam } from "@/types/exam";
+import { Plus, Save, Eye, Upload, Edit } from "lucide-react";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
 
 export default function ExamEditorPage() {
   const router = useRouter();
-  const addExam = useExamStore(state => state.addExam);
+  const addExam = useExamStore((state) => state.addExam);
 
   const [examData, setExamData] = useState<Partial<Exam>>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     grade: 10,
-    subject: 'Toán học',
+    subject: "Toán học",
     duration: 60,
     questions: [],
-    author: 'Giáo viên',
+    author: "Giáo viên",
     isPublished: false,
   });
 
   // State for imported questions
-  const [importedQuestions, setImportedQuestions] = useState<Question[] | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('manual');
+  const [importedQuestions, setImportedQuestions] = useState<Question[] | null>(
+    null
+  );
+  const [activeTab, setActiveTab] = useState<string>("import");
 
   const addQuestion = () => {
     const newQuestion: Question = {
       id: uuidv4(),
-      question: '',
-      imageUrl: '',
-      options: ['', ''],
+      question: "",
+      imageUrl: "",
+      options: ["", ""],
       correctAnswer: 0,
-      explanation: '',
+      explanation: "",
       points: 1,
-      type: 'multiple-choice',
-      rubric: ''
+      type: "multiple-choice",
+      rubric: "",
     };
 
-    setExamData(prev => ({
+    setExamData((prev) => ({
       ...prev,
       questions: [...(prev.questions || []), newQuestion],
     }));
   };
 
   const updateQuestion = (index: number, updatedQuestion: Question) => {
-    setExamData(prev => {
+    setExamData((prev) => {
       const newQuestions = [...(prev.questions || [])];
       newQuestions[index] = updatedQuestion;
       return { ...prev, questions: newQuestions };
@@ -65,7 +79,7 @@ export default function ExamEditorPage() {
   };
 
   const deleteQuestion = (index: number) => {
-    setExamData(prev => ({
+    setExamData((prev) => ({
       ...prev,
       questions: (prev.questions || []).filter((_, i) => i !== index),
     }));
@@ -77,34 +91,34 @@ export default function ExamEditorPage() {
 
   const handleImportSuccess = (questions: Question[]) => {
     setImportedQuestions(questions);
-    toast.success('Đã trích xuất câu hỏi thành công! Vui lòng kiểm tra lại.');
+    toast.success("Đã trích xuất câu hỏi thành công! Vui lòng kiểm tra lại.");
   };
 
   const handleAcceptImport = () => {
     if (importedQuestions) {
-      setExamData(prev => ({
+      setExamData((prev) => ({
         ...prev,
         questions: importedQuestions,
       }));
       setImportedQuestions(null);
-      setActiveTab('manual');
-      toast.success('Đã thêm tất cả câu hỏi vào đề thi!');
+      setActiveTab("manual");
+      toast.success("Đã thêm tất cả câu hỏi vào đề thi!");
     }
   };
 
   const handleCancelImport = () => {
     setImportedQuestions(null);
-    toast.info('Đã hủy import. Bạn có thể thử lại với file khác.');
+    toast.info("Đã hủy import. Bạn có thể thử lại với file khác.");
   };
 
   const handleSave = (publish = false) => {
     if (!examData.title || !examData.description) {
-      toast.error('Vui lòng điền đầy đủ thông tin đề thi');
+      toast.error("Vui lòng điền đầy đủ thông tin đề thi");
       return;
     }
 
     if (!examData.questions || examData.questions.length === 0) {
-      toast.error('Đề thi cần có ít nhất một câu hỏi');
+      toast.error("Đề thi cần có ít nhất một câu hỏi");
       return;
     }
 
@@ -124,8 +138,8 @@ export default function ExamEditorPage() {
     };
 
     addExam(exam);
-    toast.success(publish ? 'Đề thi đã được xuất bản!' : 'Đề thi đã được lưu!');
-    router.push('/');
+    toast.success(publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được lưu!");
+    router.push("/");
   };
 
   return (
@@ -145,7 +159,9 @@ export default function ExamEditorPage() {
               <Input
                 id="title"
                 value={examData.title}
-                onChange={(e) => setExamData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setExamData((prev) => ({ ...prev, title: e.target.value }))
+                }
                 placeholder="Ví dụ: Đề kiểm tra giữa kỳ 1"
               />
             </div>
@@ -153,7 +169,9 @@ export default function ExamEditorPage() {
               <Label htmlFor="grade">Khối lớp</Label>
               <Select
                 value={String(examData.grade)}
-                onValueChange={(value) => setExamData(prev => ({ ...prev, grade: Number(value) }))}
+                onValueChange={(value) =>
+                  setExamData((prev) => ({ ...prev, grade: Number(value) }))
+                }
               >
                 <SelectTrigger id="grade">
                   <SelectValue />
@@ -172,7 +190,12 @@ export default function ExamEditorPage() {
             <Textarea
               id="description"
               value={examData.description}
-              onChange={(e) => setExamData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setExamData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Mô tả ngắn về đề thi..."
               rows={3}
             />
@@ -185,7 +208,12 @@ export default function ExamEditorPage() {
                 id="duration"
                 type="number"
                 value={examData.duration}
-                onChange={(e) => setExamData(prev => ({ ...prev, duration: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setExamData((prev) => ({
+                    ...prev,
+                    duration: Number(e.target.value),
+                  }))
+                }
                 min="15"
                 max="180"
               />
@@ -195,7 +223,9 @@ export default function ExamEditorPage() {
               <Input
                 id="author"
                 value={examData.author}
-                onChange={(e) => setExamData(prev => ({ ...prev, author: e.target.value }))}
+                onChange={(e) =>
+                  setExamData((prev) => ({ ...prev, author: e.target.value }))
+                }
                 placeholder="Tên giáo viên"
               />
             </div>
@@ -214,7 +244,11 @@ export default function ExamEditorPage() {
       )}
 
       {/* Questions Section */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="import" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
@@ -233,7 +267,8 @@ export default function ExamEditorPage() {
         <TabsContent value="manual" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">
-              Danh sách câu hỏi ({examData.questions?.length || 0} câu - {calculateTotalPoints()} điểm)
+              Danh sách câu hỏi ({examData.questions?.length || 0} câu -{" "}
+              {calculateTotalPoints()} điểm)
             </h2>
             <Button onClick={addQuestion}>
               <Plus className="mr-2 h-4 w-4" />
@@ -255,7 +290,8 @@ export default function ExamEditorPage() {
             <Card>
               <CardContent className="text-center py-12">
                 <p className="text-muted-foreground mb-4">
-                  Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu hoặc chuyển sang tab "Import từ PDF".
+                  Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu hoặc
+                  chuyển sang tab "Import từ PDF".
                 </p>
               </CardContent>
             </Card>
@@ -265,22 +301,14 @@ export default function ExamEditorPage() {
 
       {/* Actions */}
       <div className="flex justify-end gap-4 mt-8">
-        <Button
-          variant="outline"
-          onClick={() => router.push('/')}
-        >
+        <Button variant="outline" onClick={() => router.push("/")}>
           Hủy
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => handleSave(false)}
-        >
+        <Button variant="outline" onClick={() => handleSave(false)}>
           <Save className="mr-2 h-4 w-4" />
           Lưu nháp
         </Button>
-        <Button
-          onClick={() => handleSave(true)}
-        >
+        <Button onClick={() => handleSave(true)}>
           <Eye className="mr-2 h-4 w-4" />
           Xuất bản
         </Button>

@@ -1,7 +1,15 @@
+// Sub-question for true-false type (Vietnamese "Trắc nghiệm đúng sai")
+export interface SubQuestion {
+  label: string; // a, b, c, d
+  content?: string; // The statement content
+  correct: boolean; // true = Đúng, false = Sai
+}
+
 export interface Question {
   id: string;
   question: string; // Nội dung câu hỏi (có thể chứa LaTeX)
   imageUrl?: string; // URL hình ảnh cho câu hỏi hình học
+  imageDescription?: string; // Mô tả hình ảnh/đồ thị trong đề
   options: string[]; // Các lựa chọn (cho câu hỏi trắc nghiệm)
   correctAnswer: number | string; // Index của đáp án đúng hoặc đáp án mẫu cho tự luận
   explanation: string; // Giải thích chi tiết (có thể chứa LaTeX)
@@ -9,6 +17,8 @@ export interface Question {
   type: 'multiple-choice' | 'true-false' | 'fill-in' | 'essay'; // Loại câu hỏi
   userAnswer?: number | string; // Câu trả lời của học sinh
   rubric?: string; // Tiêu chí chấm điểm cho câu tự luận
+  subQuestions?: SubQuestion[]; // Các mệnh đề con cho câu hỏi đúng/sai
+  sampleAnswer?: string; // Đáp án mẫu cho câu tự luận
 }
 
 export interface Exam {

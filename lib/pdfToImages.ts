@@ -58,6 +58,7 @@ export async function convertPDFToImages(
       canvas.height = viewport.height;
 
       // Render PDF page to canvas
+      // @ts-expect-error pdfjs types mismatch, but this works at runtime
       await page.render({
         canvasContext: context,
         viewport: viewport,

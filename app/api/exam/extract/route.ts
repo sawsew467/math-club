@@ -20,29 +20,63 @@ export async function POST(request: NextRequest) {
     console.log(`Processing ${images.length} PDF pages...`);
 
     // System message for better instruction following
-    const systemPrompt = `You are a math exam analyzer that extracts questions from images and returns ONLY valid JSON.
+    const systemPrompt = `You are a Vietnamese math exam analyzer. Your task is to extract BOTH questions AND their answer keys from exam images.
 
-CRITICAL RULES:
-1. ALWAYS respond with ONLY a JSON object - NO markdown, NO text, NO explanations
-2. Convert math formulas to LaTeX: x² → $x^2$, ∫ → $\\int$, fractions → $\\frac{a}{b}$
-3. Question types: multiple-choice, true-false, fill-in, essay
-4. For images/diagrams: describe in "imageDescription" field
+CRITICAL: Vietnamese exams often have TWO sections:
+1. "ĐỀ THI" or "ĐỀ KIỂM TRA" - The exam questions
+2. "HƯỚNG DẪN CHẤM" or "ĐÁP ÁN" - The answer key with detailed solutions
+
+YOU MUST:
+1. Extract ALL questions from the exam
+2. Find the corresponding answers in "HƯỚNG DẪN CHẤM" section
+3. Include COMPLETE detailed solutions/explanations (lời giải chi tiết)
+4. For essay questions: include the full sample answer (đáp án mẫu) and grading rubric
+
+MATH FORMATTING:
+- Convert all math to LaTeX: x² → $x^2$, √x → $\\sqrt{x}$, fractions → $\\frac{a}{b}$
+- Intervals: (a;b) → $(a;b)$, [a;b] → $[a;b]$
+- Special symbols: ∈ → $\\in$, ∞ → $\\infty$, ≤ → $\\leq$
+
+QUESTION TYPES:
+- "multiple-choice": Trắc nghiệm khách quan (A, B, C, D)
+- "true-false": Trắc nghiệm đúng sai (a, b, c, d with Đ/S)
+- "fill-in": Trắc nghiệm trả lời ngắn
+- "essay": Tự luận
 
 JSON structure:
 {
   "questions": [{
-    "question": "text with LaTeX like $x^2$",
-    "type": "multiple-choice",
-    "options": ["A", "B", "C", "D"],
+    "question": "Full question text with LaTeX",
+    "type": "multiple-choice|true-false|fill-in|essay",
+    "options": ["A. option", "B. option", "C. option", "D. option"],
     "correctAnswer": 0,
-    "explanation": "text",
-    "points": 1
+    "explanation": "COMPLETE detailed solution from Hướng dẫn chấm, including all steps",
+    "points": 0.25,
+    "subQuestions": [{"label": "a", "correct": true/false}],
+    "sampleAnswer": "For essay: full sample answer",
+    "rubric": "For essay: grading criteria with point breakdown",
+    "imageDescription": "Description of any diagram/graph in the question"
   }]
 }
 
-Rules: correctAnswer is number (0-3) for multiple-choice, string for others. points: 1-3.`;
+RULES:
+- correctAnswer: number (0-3) for multiple-choice, string for fill-in/essay
+- For true-false: use subQuestions array with {label, content, correct}
+- points: Use exact points from exam (0.25, 0.5, 1.0, etc.)
+- explanation MUST contain the FULL solution, not just "Đáp án đúng là..."
+- Include mathematical working steps in explanation`;
 
-    const userPrompt = `Extract ALL questions from these ${images.length} pages. Return ONLY the JSON object.`;
+    const userPrompt = `Extract ALL questions AND their COMPLETE answers/solutions from these ${images.length} exam pages.
+
+IMPORTANT: Look for "HƯỚNG DẪN CHẤM" or "ĐÁP ÁN" sections and extract the FULL detailed solutions.
+For each question, include:
+1. The complete question text
+2. All answer options (if applicable)
+3. The correct answer
+4. The COMPLETE explanation with all mathematical steps from the answer key
+5. Point values
+
+Return ONLY the JSON object.`;
 
     // Prepare messages with all page images
     const imageContents = images.map((base64String: string) => {
@@ -81,7 +115,7 @@ Rules: correctAnswer is number (0-3) for multiple-choice, string for others. poi
           ],
         },
       ],
-      max_tokens: 4096,
+      max_tokens: 16384,
       temperature: 0,
       response_format: { type: 'json_object' } as any,
     });
@@ -153,7 +187,10 @@ Rules: correctAnswer is number (0-3) for multiple-choice, string for others. poi
       points: q.points || 1,
       imageUrl: q.imageUrl || undefined,
       imageDescription: q.imageDescription || undefined,
-      rubric: q.rubric || undefined,
+      // New fields for Vietnamese exam format
+      subQuestions: q.subQuestions || undefined, // For true-false questions
+      sampleAnswer: q.sampleAnswer || undefined, // For essay questions
+      rubric: q.rubric || undefined, // Grading criteria
     }));
 
     console.log(`Successfully extracted ${processedQuestions.length} questions`);
