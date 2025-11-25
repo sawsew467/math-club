@@ -1,13 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +12,7 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -55,17 +49,13 @@ export interface QuestionContextType {
   subQuestions?: SubQuestion[]; // For true-false with multiple statements
 }
 
-interface ChatDialogProps {
+interface ChatPanelProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   questionContext: QuestionContextType;
 }
 
-export function ChatDialog({
-  open,
-  onOpenChange,
-  questionContext,
-}: ChatDialogProps) {
+export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -81,13 +71,11 @@ export function ChatDialog({
   // Helper to strip HTML for AI processing
   const stripHtmlForAI = (html: string) => {
     if (!html) return "";
-    // Create a temporary element to parse HTML
     if (typeof document !== "undefined") {
       const tmp = document.createElement("DIV");
       tmp.innerHTML = html;
       return tmp.textContent || tmp.innerText || "";
     }
-    // Fallback for SSR: basic HTML stripping
     return html.replace(/<[^>]*>/g, "").trim();
   };
 
@@ -99,7 +87,7 @@ export function ChatDialog({
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input, // Keep original HTML for display
+      content: input,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -107,7 +95,6 @@ export function ChatDialog({
     setIsLoading(true);
 
     try {
-      // Send stripped text version to AI for processing
       const aiContext = {
         question: questionContext.questionText,
         correctAnswer: String(questionContext.correctAnswer),
@@ -117,7 +104,6 @@ export function ChatDialog({
           : undefined,
       };
 
-      // Strip HTML from all messages for AI
       const messagesForAI = [...messages, userMessage].map((m) => ({
         role: m.role,
         content: m.role === "user" ? stripHtmlForAI(m.content) : m.content,
@@ -174,12 +160,10 @@ export function ChatDialog({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Get display text for correct answer
   const getCorrectAnswerDisplay = () => {
     if (questionContext.type === "multiple-choice" && questionContext.options) {
       const idx =
@@ -196,7 +180,6 @@ export function ChatDialog({
     return String(questionContext.correctAnswer);
   };
 
-  // Get display text for user answer
   const getUserAnswerDisplay = () => {
     if (questionContext.userAnswer === undefined) return "Chưa trả lời";
     if (questionContext.type === "multiple-choice" && questionContext.options) {
@@ -212,20 +195,41 @@ export function ChatDialog({
     return String(questionContext.userAnswer);
   };
 
+  // Handle ESC key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
-      <DialogContent className="max-w-6xl! h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
-                Trợ lý AI - Câu {questionContext.questionNumber}
-              </DialogTitle>
-              <DialogDescription>
-                Hỏi bất kỳ điều gì về câu hỏi này để hiểu sâu hơn
-              </DialogDescription>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center chat-panel-wrapper">
+      {/* Backdrop */}
+      <div
+        className="chat-panel-backdrop absolute inset-0 bg-black/50 animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div className="chat-panel-container relative w-full max-w-6xl h-[85vh] mx-4 bg-background rounded-lg shadow-xl flex flex-col animate-in zoom-in-95 fade-in duration-200">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              Trợ lý AI - Câu {questionContext.questionNumber}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Hỏi bất kỳ điều gì về câu hỏi này để hiểu sâu hơn
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -239,8 +243,16 @@ export function ChatDialog({
               )}
               {showSidebar ? "Ẩn đề" : "Xem đề"}
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        </DialogHeader>
+        </div>
 
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Sidebar - Question Details */}
@@ -291,10 +303,10 @@ export function ChatDialog({
                                     className="flex-1"
                                   />
                                   {isCorrect && (
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                                   )}
                                   {isUserAnswer && !isCorrect && (
-                                    <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                                    <XCircle className="h-4 w-4 text-red-600 shrink-0" />
                                   )}
                                 </div>
                               </div>
@@ -314,7 +326,6 @@ export function ChatDialog({
                         </h4>
                         <div className="space-y-2">
                           {(() => {
-                            // Parse user answers
                             let userAnswerObj: Record<string, boolean> = {};
                             try {
                               if (questionContext.userAnswer) {
@@ -380,7 +391,7 @@ export function ChatDialog({
                       </div>
                     )}
 
-                  {/* Answer Summary - Hide for true-false with sub-questions */}
+                  {/* Answer Summary */}
                   {!(
                     questionContext.type === "true-false" &&
                     questionContext.subQuestions &&
@@ -464,7 +475,7 @@ export function ChatDialog({
                     }`}
                   >
                     {message.role === "assistant" && (
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                           <Bot className="h-5 w-5 text-white" />
                         </div>
@@ -488,14 +499,14 @@ export function ChatDialog({
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <div className="text-sm [&_.ck-content]:!p-0 [&_.ck-content]:!border-0 [&_img]:max-w-full [&_img]:rounded">
+                        <div className="text-sm [&_.ck-content]:p-0! [&_.ck-content]:border-0! [&_img]:max-w-full [&_img]:rounded">
                           <ContentDisplay content={message.content} />
                         </div>
                       )}
                     </div>
 
                     {message.role === "user" && (
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
                           <User className="h-5 w-5 text-gray-600" />
                         </div>
@@ -506,7 +517,7 @@ export function ChatDialog({
 
                 {isLoading && (
                   <div className="flex gap-3 justify-start">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                         <Bot className="h-5 w-5 text-white" />
                       </div>
@@ -556,7 +567,7 @@ export function ChatDialog({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

@@ -46,6 +46,38 @@ function DialogOverlay({
   )
 }
 
+// Check if an element is inside MathType/CKEditor modal
+const isInsideExternalModal = (element: Element | null): boolean => {
+  if (!element) return false;
+
+  // MathType/Wiris modal selectors
+  const modalSelectors = [
+    '.wrs_modal',
+    '.wrs_modal_overlay',
+    '.wrs_editor',
+    '.wrs_panelContainer',
+    '.wrs_container',
+    '[class*="wrs_"]',
+    '.cke_dialog',
+    '.cke_dialog_background_cover',
+    '.ck-balloon-panel',
+    '.ck-body-wrapper',
+  ];
+
+  // Check if element or any parent matches modal selectors
+  let current: Element | null = element;
+  while (current) {
+    for (const selector of modalSelectors) {
+      if (current.matches?.(selector)) {
+        return true;
+      }
+    }
+    current = current.parentElement;
+  }
+
+  return false;
+};
+
 function DialogContent({
   className,
   children,
@@ -54,6 +86,22 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Prevent dialog from closing when interacting with MathType modal
+  const handleInteractOutside = React.useCallback((event: Event) => {
+    const target = event.target as Element;
+    if (isInsideExternalModal(target)) {
+      event.preventDefault();
+    }
+  }, []);
+
+  // Prevent focus trap from capturing focus when MathType modal is open
+  const handleFocusOutside = React.useCallback((event: Event) => {
+    const target = event.target as Element;
+    if (isInsideExternalModal(target)) {
+      event.preventDefault();
+    }
+  }, []);
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -63,6 +111,9 @@ function DialogContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           className
         )}
+        onPointerDownOutside={handleInteractOutside}
+        onInteractOutside={handleInteractOutside}
+        onFocusOutside={handleFocusOutside}
         {...props}
       >
         {children}

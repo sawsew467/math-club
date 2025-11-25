@@ -218,3 +218,18 @@
   vertical-align: middle;
   margin: 0 0.2em;
 }
+
+/* ===========================================
+   MathType/Wiris Modal - Z-Index Fix
+   =========================================== */
+
+/* MathType modal - must be above ChatPanel (z-50) */
+.wrs_modal,
+.wrs_modal_desktop {
+  z-index: 60 !important;
+}
+
+/* CKEditor balloon panels */
+.ck-body-wrapper {
+  z-index: 60 !important;
+}

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import ContentDisplay from '@/components/editor/ContentDisplay';
-import { ChatDialog } from '@/components/chat/ChatDialog';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useExamStore } from '@/store/exam-store';
@@ -505,9 +505,9 @@ function QuestionResult({
       </CardContent>
     </Card>
 
-      <ChatDialog
+      <ChatPanel
         open={chatOpen}
-        onOpenChange={setChatOpen}
+        onClose={() => setChatOpen(false)}
         questionContext={questionContext}
       />
     </>
