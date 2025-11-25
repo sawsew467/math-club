@@ -59,10 +59,11 @@ QUESTION TYPES:
 
 IMAGE HANDLING:
 - If a question contains an image (graph, diagram, table, figure), set "hasImage": true
-- Describe the image in detail in "imageDescription" field
-- For graphs: describe axes, key points, shape of curve
-- For tables: describe structure and key data
-- For geometry: describe shapes, labels, measurements
+- Describe the image in Vietnamese in "imageDescription" field
+- For graphs: "Đồ thị hàm số y = f(x) với trục Ox, Oy, điểm cực trị tại..."
+- For tables: "Bảng số liệu gồm 2 cột: thời gian (giây) và độ cao (mét)..."
+- For geometry: "Hình tam giác ABC với AB = 5cm, góc A = 60°..."
+- IMPORTANT: imageDescription MUST be in Vietnamese
 
 JSON structure:
 {
@@ -81,12 +82,18 @@ JSON structure:
   }]
 }
 
+TEXT FORMATTING:
+- Use HTML for formatting: <br> for line breaks, <p> for paragraphs
+- For multi-line content (explanations, solutions), use <br> between lines
+- Example: "Bước 1: Tính đạo hàm<br>$y' = 2x - 3$<br>Bước 2: Giải $y' = 0$<br>$2x - 3 = 0 \\Rightarrow x = \\frac{3}{2}$"
+- Keep each option on a single line (no <br> inside options)
+
 RULES:
 - correctAnswer: number (0-3) for multiple-choice, string for fill-in/essay
 - For true-false: use subQuestions array with {label, content, correct}
 - points: Use exact points from exam (0.25, 0.5, 1.0, etc.)
-- explanation MUST contain the FULL solution, not just "Đáp án đúng là..."
-- Include mathematical working steps in explanation`;
+- explanation MUST contain the FULL solution with step-by-step working
+- Use <br> to separate steps in explanations for readability`;
 
     const userPrompt = `Extract ALL questions AND their COMPLETE answers/solutions from these ${images.length} exam pages.
 

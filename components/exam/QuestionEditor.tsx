@@ -32,7 +32,7 @@ export function QuestionEditor({
   onUpdate,
   onDelete,
 }: QuestionEditorProps) {
-  const [isPreview, setIsPreview] = useState(false);
+  const [isPreview, setIsPreview] = useState(true); // Default to preview mode
 
   const updateField = (field: keyof Question, value: any) => {
     onUpdate({ ...question, [field]: value });
@@ -109,9 +109,10 @@ export function QuestionEditor({
               )}
               {question.imageDescription && !question.imageUrl && (
                 <div className="mt-2 p-3 bg-yellow-50 rounded border border-yellow-200">
-                  <p className="text-sm text-yellow-800">
-                    <span className="font-medium">Mô tả hình:</span> {question.imageDescription}
-                  </p>
+                  <div className="text-sm text-yellow-800">
+                    <span className="font-medium">Mô tả hình:</span>{" "}
+                    <ContentDisplay content={question.imageDescription} className="inline" />
+                  </div>
                 </div>
               )}
             </div>
@@ -248,9 +249,10 @@ export function QuestionEditor({
                     Nhấn nút <strong>🖼️ (Insert image)</strong> trên thanh công cụ hoặc <strong>kéo thả ảnh</strong> vào editor để thêm hình.
                   </p>
                   {question.imageDescription && (
-                    <p className="mt-2 text-sm bg-orange-100 p-2 rounded">
-                      <strong>Mô tả hình:</strong> {question.imageDescription}
-                    </p>
+                    <div className="mt-2 text-sm bg-orange-100 p-2 rounded">
+                      <strong>Mô tả hình:</strong>{" "}
+                      <ContentDisplay content={question.imageDescription} className="inline" />
+                    </div>
                   )}
                 </AlertDescription>
               </Alert>
