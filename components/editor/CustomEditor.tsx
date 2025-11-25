@@ -13,7 +13,12 @@ import {
     Subscript,
     Superscript,
     Underline,
-    Undo
+    Undo,
+    Image,
+    ImageInsert,
+    ImageUpload,
+    ImageResize,
+    Base64UploadAdapter
 } from 'ckeditor5';
 import MathType from '@wiris/mathtype-ckeditor5/dist/index.js';
 import 'ckeditor5/ckeditor5.css';
@@ -61,7 +66,12 @@ export default function CustomEditor({
                             Subscript,
                             Superscript,
                             Underline,
-                            Undo
+                            Undo,
+                            Image,
+                            ImageInsert,
+                            ImageUpload,
+                            ImageResize,
+                            Base64UploadAdapter
                         ],
                         toolbar: {
                             items: [
@@ -81,9 +91,34 @@ export default function CustomEditor({
                                 'MathType',
                                 'ChemType',
                                 '|',
+                                'insertImage',
+                                '|',
                                 'removeFormat'
                             ],
                             shouldNotGroupWhenFull: true
+                        },
+                        image: {
+                            insert: {
+                                type: 'inline'
+                            },
+                            resizeUnit: 'px',
+                            resizeOptions: [
+                                {
+                                    name: 'resizeImage:original',
+                                    value: null,
+                                    label: 'Original'
+                                },
+                                {
+                                    name: 'resizeImage:200',
+                                    value: '200',
+                                    label: '200px'
+                                },
+                                {
+                                    name: 'resizeImage:400',
+                                    value: '400',
+                                    label: '400px'
+                                }
+                            ]
                         },
                         placeholder: placeholder
                     }}

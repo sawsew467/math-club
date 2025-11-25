@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select";
 import CustomEditorDynamic from "@/components/editor/CustomEditorDynamic";
 import ContentDisplay from "@/components/editor/ContentDisplay";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ImageIcon } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Question } from "@/types/exam";
 
 interface QuestionEditorProps {
@@ -35,10 +36,6 @@ export function QuestionEditor({
 
   const updateField = (field: keyof Question, value: any) => {
     onUpdate({ ...question, [field]: value });
-  };
-
-  const handleImageUrlChange = (url: string) => {
-    updateField("imageUrl", url);
   };
 
   const updateOption = (optionIndex: number, value: string) => {
@@ -68,7 +65,15 @@ export function QuestionEditor({
   return (
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Câu {index + 1}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Câu {index + 1}
+          {question.hasImage && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
+              <ImageIcon className="h-3 w-3" />
+              Có hình
+            </span>
+          )}
+        </CardTitle>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -233,27 +238,23 @@ export function QuestionEditor({
                 minHeight="150px"
               />
             </div>
-            {/* Image URL for geometry questions */}
-            <div>
-              <Label>URL hình ảnh (tùy chọn - cho câu hỏi hình học)</Label>
-              <Input
-                value={question.imageUrl || ""}
-                onChange={(e) => handleImageUrlChange(e.target.value)}
-                placeholder="https://example.com/image.png"
-              />
-              {question.imageUrl && question.imageUrl.trim() !== "" && (
-                <div className="mt-2">
-                  <img
-                    src={question.imageUrl}
-                    alt="Hình minh họa"
-                    className="max-w-md rounded border"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            {/* Image Warning Alert - reminds to add image to editor */}
+            {question.hasImage && (
+              <Alert className="border-orange-500 bg-orange-50">
+                <ImageIcon className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800">
+                  <strong>Câu hỏi này có hình ảnh!</strong>
+                  <p className="mt-1 text-sm">
+                    Nhấn nút <strong>🖼️ (Insert image)</strong> trên thanh công cụ hoặc <strong>kéo thả ảnh</strong> vào editor để thêm hình.
+                  </p>
+                  {question.imageDescription && (
+                    <p className="mt-2 text-sm bg-orange-100 p-2 rounded">
+                      <strong>Mô tả hình:</strong> {question.imageDescription}
+                    </p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {question.type === "multiple-choice" && (
               <div>

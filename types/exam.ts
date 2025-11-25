@@ -10,6 +10,7 @@ export interface Question {
   question: string; // Nội dung câu hỏi (có thể chứa LaTeX)
   imageUrl?: string; // URL hình ảnh cho câu hỏi hình học
   imageDescription?: string; // Mô tả hình ảnh/đồ thị trong đề
+  hasImage?: boolean; // Câu hỏi có chứa hình ảnh cần upload
   options: string[]; // Các lựa chọn (cho câu hỏi trắc nghiệm)
   correctAnswer: number | string; // Index của đáp án đúng hoặc đáp án mẫu cho tự luận
   explanation: string; // Giải thích chi tiết (có thể chứa LaTeX)

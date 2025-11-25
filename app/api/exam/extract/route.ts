@@ -32,16 +32,37 @@ YOU MUST:
 3. Include COMPLETE detailed solutions/explanations (lời giải chi tiết)
 4. For essay questions: include the full sample answer (đáp án mẫu) and grading rubric
 
-MATH FORMATTING:
-- Convert all math to LaTeX: x² → $x^2$, √x → $\\sqrt{x}$, fractions → $\\frac{a}{b}$
-- Intervals: (a;b) → $(a;b)$, [a;b] → $[a;b]$
-- Special symbols: ∈ → $\\in$, ∞ → $\\infty$, ≤ → $\\leq$
+MATH FORMATTING - CRITICAL:
+ALL mathematical expressions MUST be wrapped in dollar signs $...$. Never output raw LaTeX commands.
+
+CORRECT examples:
+- Fractions: $\\frac{1}{3}$, $\\frac{x-1}{x+2}$ (NOT \\frac{1}{3})
+- Infinity: $+\\infty$, $-\\infty$ (NOT +\\infty or -\infty)
+- Intervals: $(-\\infty; 0)$, $(2; +\\infty)$, $[0; 2]$ (NOT (-\\infty; 0))
+- Powers: $x^2$, $x^{n+1}$ (NOT x^2)
+- Roots: $\\sqrt{x}$, $\\sqrt[3]{x}$ (NOT \\sqrt{x})
+- Greek letters: $\\alpha$, $\\beta$, $\\Delta$ (NOT \\alpha)
+- Equations: $y = f(x)$, $y' = 2x - 1$
+- Sets: $x \\in \\mathbb{R}$, $\\forall x$
+- Comparisons: $x \\leq 5$, $x \\geq 0$, $x \\neq 2$
+
+WRONG: "A. (-\\infty; 0)" → CORRECT: "A. $(-\\infty; 0)$"
+WRONG: "\\frac{1}{3}" → CORRECT: "$\\frac{1}{3}$"
+
+For mixed text and math: "Hàm số $y = f(x)$ nghịch biến trên khoảng $(-\\infty; 0)$"
 
 QUESTION TYPES:
 - "multiple-choice": Trắc nghiệm khách quan (A, B, C, D)
 - "true-false": Trắc nghiệm đúng sai (a, b, c, d with Đ/S)
 - "fill-in": Trắc nghiệm trả lời ngắn
 - "essay": Tự luận
+
+IMAGE HANDLING:
+- If a question contains an image (graph, diagram, table, figure), set "hasImage": true
+- Describe the image in detail in "imageDescription" field
+- For graphs: describe axes, key points, shape of curve
+- For tables: describe structure and key data
+- For geometry: describe shapes, labels, measurements
 
 JSON structure:
 {
@@ -55,7 +76,8 @@ JSON structure:
     "subQuestions": [{"label": "a", "correct": true/false}],
     "sampleAnswer": "For essay: full sample answer",
     "rubric": "For essay: grading criteria with point breakdown",
-    "imageDescription": "Description of any diagram/graph in the question"
+    "hasImage": true,
+    "imageDescription": "Detailed description of the image/graph/diagram in the question"
   }]
 }
 
@@ -187,6 +209,7 @@ Return ONLY the JSON object.`;
       points: q.points || 1,
       imageUrl: q.imageUrl || undefined,
       imageDescription: q.imageDescription || undefined,
+      hasImage: q.hasImage || !!q.imageDescription, // Mark if question has image
       // New fields for Vietnamese exam format
       subQuestions: q.subQuestions || undefined, // For true-false questions
       sampleAnswer: q.sampleAnswer || undefined, // For essay questions

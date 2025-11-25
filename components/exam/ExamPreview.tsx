@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuestionEditor } from "./QuestionEditor";
 import { Question } from "@/types/exam";
-import { CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, AlertCircle, ChevronDown, ChevronUp, ImageIcon } from "lucide-react";
 
 interface ExamPreviewProps {
   questions: Question[];
@@ -72,9 +72,15 @@ export function ExamPreview({
 
         {/* Actions */}
         <div className="flex justify-between items-center border-b pb-4">
-          <div className="text-sm text-muted-foreground">
-            Tổng số câu: <strong>{questions.length}</strong> |
-            Tổng điểm: <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong>
+          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+            <span>Tổng số câu: <strong>{questions.length}</strong></span>
+            <span>Tổng điểm: <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong></span>
+            {questions.filter(q => q.hasImage).length > 0 && (
+              <span className="text-orange-600 flex items-center gap-1">
+                <ImageIcon className="h-4 w-4" />
+                <strong>{questions.filter(q => q.hasImage).length}</strong> câu có hình
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
