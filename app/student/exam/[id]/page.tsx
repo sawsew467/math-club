@@ -204,6 +204,7 @@ export default function ExamTakingPage() {
       userAnswer: string | number;
       isCorrect: boolean;
       pointsEarned: number;
+      aiFeedback?: string;
     }> = [];
 
     // Process questions sequentially (needed for AI grading)
@@ -265,6 +266,7 @@ export default function ExamTakingPage() {
               userAnswer: studentAnswer,
               isCorrect: gradeResult.data.score >= question.points * 0.8, // 80% is "correct"
               pointsEarned: gradeResult.data.score,
+              aiFeedback: gradeResult.data.feedback,
             });
           } else {
             // AI grading failed, give 0 points
@@ -273,6 +275,7 @@ export default function ExamTakingPage() {
               userAnswer: studentAnswer,
               isCorrect: false,
               pointsEarned: 0,
+              aiFeedback: 'Không thể chấm điểm tự động. Vui lòng liên hệ giáo viên.',
             });
           }
         } else {

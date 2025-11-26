@@ -48,6 +48,8 @@ export interface QuestionContextType {
   points: number;
   subQuestions?: SubQuestion[]; // For true-false with multiple statements
   sampleAnswer?: string; // For essay questions
+  aiFeedback?: string; // AI grading feedback for essay
+  pointsEarned?: number; // Points earned from AI grading
 }
 
 interface ChatPanelProps {
@@ -419,6 +421,21 @@ export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
                           )}
                         </div>
                       </div>
+                      {questionContext.aiFeedback && (
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-xs text-blue-700 mb-2 flex items-center gap-1">
+                            <span>🤖</span> Nhận xét từ AI:
+                          </h4>
+                          <div className="text-sm text-blue-800">
+                            <ContentDisplay content={questionContext.aiFeedback} />
+                          </div>
+                          {questionContext.pointsEarned !== undefined && (
+                            <div className="mt-2 pt-2 border-t border-blue-200 text-sm font-semibold text-blue-900">
+                              Điểm: {questionContext.pointsEarned.toFixed(1)}/{questionContext.points}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -467,9 +484,15 @@ export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
                   {/* Result Badge */}
                   <div className="flex items-center gap-2">
                     {questionContext.type === "essay" ? (
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        Cần chấm điểm ({questionContext.points} điểm)
-                      </Badge>
+                      questionContext.aiFeedback ? (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          🤖 AI đã chấm: {questionContext.pointsEarned?.toFixed(1) || 0}/{questionContext.points} điểm
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-yellow-100 text-yellow-800">
+                          Cần chấm điểm ({questionContext.points} điểm)
+                        </Badge>
+                      )
                     ) : questionContext.isCorrect ? (
                       <Badge className="bg-green-100 text-green-800">
                         <CheckCircle2 className="mr-1 h-3 w-3" /> Đúng (+

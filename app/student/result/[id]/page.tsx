@@ -224,6 +224,8 @@ export default function ExamResultPage() {
                 isCorrect={isCorrect}
                 showExplanation={showExplanations.has(question.id)}
                 onToggleExplanation={() => toggleExplanation(question.id)}
+                aiFeedback={answer?.aiFeedback}
+                pointsEarned={answer?.pointsEarned}
               />
             );
           })}
@@ -246,6 +248,8 @@ export default function ExamResultPage() {
                   isCorrect={true}
                   showExplanation={showExplanations.has(question.id)}
                   onToggleExplanation={() => toggleExplanation(question.id)}
+                  aiFeedback={answer?.aiFeedback}
+                  pointsEarned={answer?.pointsEarned}
                 />
               );
             })}
@@ -268,6 +272,8 @@ export default function ExamResultPage() {
                   isCorrect={false}
                   showExplanation={showExplanations.has(question.id)}
                   onToggleExplanation={() => toggleExplanation(question.id)}
+                  aiFeedback={answer?.aiFeedback}
+                  pointsEarned={answer?.pointsEarned}
                 />
               );
             })}
@@ -307,7 +313,9 @@ function QuestionResult({
   userAnswer,
   isCorrect,
   showExplanation,
-  onToggleExplanation
+  onToggleExplanation,
+  aiFeedback,
+  pointsEarned
 }: {
   question: any;
   index: number;
@@ -315,6 +323,8 @@ function QuestionResult({
   isCorrect: boolean;
   showExplanation: boolean;
   onToggleExplanation: () => void;
+  aiFeedback?: string;
+  pointsEarned?: number;
 }) {
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -341,6 +351,8 @@ function QuestionResult({
     points: question.points,
     subQuestions: question.subQuestions, // For true-false with multiple statements
     sampleAnswer: question.sampleAnswer, // For essay questions
+    aiFeedback: aiFeedback, // AI grading feedback
+    pointsEarned: pointsEarned, // Points earned from AI grading
   };
 
   return (
@@ -361,9 +373,15 @@ function QuestionResult({
               <div>
                 <div className="flex items-center gap-2">
                   {question.type === 'essay' ? (
-                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                      Cần chấm điểm
-                    </Badge>
+                    aiFeedback ? (
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+                        🤖 AI đã chấm: {pointsEarned?.toFixed(1) || 0}/{question.points} điểm
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        Cần chấm điểm
+                      </Badge>
+                    )
                   ) : isCorrect ? (
                     <Badge className="bg-green-100 text-green-800 border-green-300">
                       <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -564,17 +582,30 @@ function QuestionResult({
               <p className="font-medium mb-2">Đáp án mẫu:</p>
               <ContentDisplay content={question.sampleAnswer || '(Chưa có đáp án mẫu)'} />
             </div>
-            {question.rubric && (
-              <div className="p-3 bg-blue-50 rounded-md">
-                <p className="font-medium mb-2">Tiêu chí chấm điểm:</p>
-                <ContentDisplay content={question.rubric} />
+            {aiFeedback && (
+              <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                <p className="font-medium mb-2 text-blue-900 flex items-center gap-2">
+                  <span>🤖</span> Nhận xét từ AI:
+                </p>
+                <div className="text-blue-800">
+                  <ContentDisplay content={aiFeedback} />
+                </div>
+                {pointsEarned !== undefined && (
+                  <div className="mt-2 pt-2 border-t border-blue-200">
+                    <span className="font-semibold text-blue-900">
+                      Điểm: {pointsEarned.toFixed(1)}/{question.points}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
-            <Alert>
-              <AlertDescription>
-                Câu tự luận cần được giáo viên chấm điểm thủ công
-              </AlertDescription>
-            </Alert>
+            {!aiFeedback && (
+              <Alert>
+                <AlertDescription>
+                  Câu tự luận cần được giáo viên chấm điểm thủ công
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 

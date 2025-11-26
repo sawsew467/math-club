@@ -48,6 +48,8 @@ export interface ExamResult {
     questionId: string;
     userAnswer: number | string;
     isCorrect: boolean;
+    pointsEarned?: number;
+    aiFeedback?: string; // AI grading feedback for essay questions
   }>;
   completedAt: Date;
   timeSpent: number; // Thời gian làm bài (giây)

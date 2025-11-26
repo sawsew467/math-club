@@ -73,6 +73,7 @@ interface DbStudentAnswer {
   user_answer: string | null
   is_correct: boolean | null
   points_earned: number
+  ai_feedback: string | null
 }
 
 // ============================================
@@ -143,6 +144,8 @@ function dbSessionToResult(session: DbSession): ExamResult {
       questionId: a.question_id,
       userAnswer: parseUserAnswer(a.user_answer),
       isCorrect: a.is_correct ?? false,
+      pointsEarned: a.points_earned,
+      aiFeedback: a.ai_feedback || undefined,
     })),
     completedAt: session.completed_at ? new Date(session.completed_at) : new Date(),
     timeSpent: session.time_spent,

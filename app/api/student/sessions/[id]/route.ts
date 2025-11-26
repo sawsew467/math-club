@@ -140,12 +140,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           userAnswer: string | number
           isCorrect: boolean
           pointsEarned: number
+          aiFeedback?: string
         }) => ({
           session_id: id,
           question_id: a.questionId,
           user_answer: String(a.userAnswer),
           is_correct: a.isCorrect,
           points_earned: a.pointsEarned || 0,
+          ai_feedback: a.aiFeedback || null,
         }))
 
         const { error: answersError } = await supabase
