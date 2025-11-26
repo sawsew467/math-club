@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuestionEditor } from "@/components/exam/QuestionEditor";
 import { ExamImporter } from "@/components/exam/ExamImporter";
 import { ExamPreview } from "@/components/exam/ExamPreview";
-import { useExamStore } from "@/store/exam-store";
+import { createExam } from "@/lib/api/exams";
 import { Question, Exam } from "@/types/exam";
 import {
   Plus,
@@ -33,13 +33,14 @@ import {
   GraduationCap,
   Settings,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
 export default function ExamEditorPage() {
   const router = useRouter();
-  const addExam = useExamStore((state) => state.addExam);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [examData, setExamData] = useState<Partial<Exam>>({
     title: "",
@@ -118,7 +119,7 @@ export default function ExamEditorPage() {
     toast.info("Đã hủy import. Bạn có thể thử lại với file khác.");
   };
 
-  const handleSave = (publish = false) => {
+  const handleSave = async (publish = false) => {
     if (!examData.title || !examData.description) {
       toast.error("Vui lòng điền đầy đủ thông tin đề thi");
       return;
@@ -129,8 +130,9 @@ export default function ExamEditorPage() {
       return;
     }
 
-    const exam: Exam = {
-      id: uuidv4(),
+    setIsSaving(true);
+
+    const exam: Partial<Exam> = {
       title: examData.title,
       description: examData.description,
       grade: examData.grade!,
@@ -140,13 +142,18 @@ export default function ExamEditorPage() {
       author: examData.author!,
       totalPoints: calculateTotalPoints(),
       isPublished: publish,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
 
-    addExam(exam);
-    toast.success(publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được lưu!");
-    router.push("/teacher");
+    const result = await createExam(exam);
+
+    setIsSaving(false);
+
+    if (result.success) {
+      toast.success(publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được lưu!");
+      router.push("/teacher");
+    } else {
+      toast.error(result.error || "Không thể lưu đề thi");
+    }
   };
 
   const questionCount = examData.questions?.length || 0;
@@ -204,12 +211,21 @@ export default function ExamEditorPage() {
                 size="sm"
                 onClick={() => handleSave(false)}
                 className="hidden sm:flex"
+                disabled={isSaving}
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 Lưu nháp
               </Button>
-              <Button size="sm" onClick={() => handleSave(true)}>
-                <Eye className="h-4 w-4 mr-2" />
+              <Button size="sm" onClick={() => handleSave(true)} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
                 Xuất bản
               </Button>
             </div>
@@ -412,12 +428,21 @@ export default function ExamEditorPage() {
             variant="outline"
             className="flex-1"
             onClick={() => handleSave(false)}
+            disabled={isSaving}
           >
-            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             Lưu nháp
           </Button>
-          <Button className="flex-1" onClick={() => handleSave(true)}>
-            <Eye className="h-4 w-4 mr-2" />
+          <Button className="flex-1" onClick={() => handleSave(true)} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4 mr-2" />
+            )}
             Xuất bản
           </Button>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuestionEditor } from "@/components/exam/QuestionEditor";
 import { ExamImporter } from "@/components/exam/ExamImporter";
 import { ExamPreview } from "@/components/exam/ExamPreview";
-import { useExamStore } from "@/store/exam-store";
+import { fetchExamById, updateExam as updateExamApi } from "@/lib/api/exams";
 import { Question, Exam } from "@/types/exam";
 import {
   Plus,
@@ -35,6 +35,7 @@ import {
   GraduationCap,
   Settings,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
@@ -44,44 +45,64 @@ export default function EditExamPage() {
   const params = useParams();
   const examId = params.id as string;
 
-  const { getExam, updateExam } = useExamStore();
-  const existingExam = getExam(examId);
-
-  // Initialize state from existing exam data
-  const initialExamData = useMemo<Partial<Exam>>(
-    () =>
-      existingExam
-        ? {
-            title: existingExam.title,
-            description: existingExam.description,
-            grade: existingExam.grade,
-            subject: existingExam.subject,
-            duration: existingExam.duration,
-            questions: existingExam.questions,
-            author: existingExam.author,
-            isPublished: existingExam.isPublished,
-          }
-        : {
-            title: "",
-            description: "",
-            grade: 10,
-            subject: "Toán học",
-            duration: 60,
-            questions: [],
-            author: "Giáo viên",
-            isPublished: false,
-          },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [examId]
-  );
-
-  const [examData, setExamData] = useState<Partial<Exam>>(initialExamData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [examData, setExamData] = useState<Partial<Exam>>({
+    title: "",
+    description: "",
+    grade: 10,
+    subject: "Toán học",
+    duration: 60,
+    questions: [],
+    author: "Giáo viên",
+    isPublished: false,
+  });
+  const [originalExam, setOriginalExam] = useState<Exam | null>(null);
   const [importedQuestions, setImportedQuestions] = useState<Question[] | null>(
     null
   );
   const [activeTab, setActiveTab] = useState<string>("manual");
+  const [error, setError] = useState<string | null>(null);
 
-  if (!existingExam) {
+  useEffect(() => {
+    const loadExam = async () => {
+      setIsLoading(true);
+      const result = await fetchExamById(examId);
+
+      if (result.success && result.data) {
+        const exam = result.data;
+        setOriginalExam(exam);
+        setExamData({
+          title: exam.title,
+          description: exam.description,
+          grade: exam.grade,
+          subject: exam.subject,
+          duration: exam.duration,
+          questions: exam.questions,
+          author: exam.author,
+          isPublished: exam.isPublished,
+        });
+      } else {
+        setError(result.error || "Không tìm thấy đề thi");
+      }
+      setIsLoading(false);
+    };
+
+    loadExam();
+  }, [examId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-500">Đang tải đề thi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !originalExam) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -89,7 +110,7 @@ export default function EditExamPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Không tìm thấy đề thi với ID: {examId}
+                {error || `Không tìm thấy đề thi với ID: ${examId}`}
               </AlertDescription>
             </Alert>
             <Button
@@ -165,7 +186,7 @@ export default function EditExamPage() {
     toast.info("Đã hủy import. Bạn có thể thử lại với file khác.");
   };
 
-  const handleSave = (publish = false) => {
+  const handleSave = async (publish = false) => {
     if (!examData.title || !examData.description) {
       toast.error("Vui lòng điền đầy đủ thông tin đề thi");
       return;
@@ -176,7 +197,9 @@ export default function EditExamPage() {
       return;
     }
 
-    updateExam(examId, {
+    setIsSaving(true);
+
+    const result = await updateExamApi(examId, {
       title: examData.title,
       description: examData.description,
       grade: examData.grade!,
@@ -186,13 +209,18 @@ export default function EditExamPage() {
       author: examData.author!,
       totalPoints: calculateTotalPoints(),
       isPublished: publish,
-      updatedAt: new Date(),
     });
 
-    toast.success(
-      publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được cập nhật!"
-    );
-    router.push("/teacher");
+    setIsSaving(false);
+
+    if (result.success) {
+      toast.success(
+        publish ? "Đề thi đã được xuất bản!" : "Đề thi đã được cập nhật!"
+      );
+      router.push("/teacher");
+    } else {
+      toast.error(result.error || "Không thể cập nhật đề thi");
+    }
   };
 
   const questionCount = examData.questions?.length || 0;
@@ -249,7 +277,7 @@ export default function EditExamPage() {
                 <Clock className="h-4 w-4" />
                 <span>{examData.duration} phút</span>
               </div>
-              {existingExam.isPublished && (
+              {originalExam.isPublished && (
                 <Badge className="bg-green-100 text-green-700">
                   Đã xuất bản
                 </Badge>
@@ -263,13 +291,22 @@ export default function EditExamPage() {
                 size="sm"
                 onClick={() => handleSave(false)}
                 className="hidden sm:flex"
+                disabled={isSaving}
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 Lưu
               </Button>
-              <Button size="sm" onClick={() => handleSave(true)}>
-                <Eye className="h-4 w-4 mr-2" />
-                {existingExam.isPublished ? "Cập nhật" : "Xuất bản"}
+              <Button size="sm" onClick={() => handleSave(true)} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
+                {originalExam.isPublished ? "Cập nhật" : "Xuất bản"}
               </Button>
             </div>
           </div>
@@ -477,13 +514,22 @@ export default function EditExamPage() {
             variant="outline"
             className="flex-1"
             onClick={() => handleSave(false)}
+            disabled={isSaving}
           >
-            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             Lưu
           </Button>
-          <Button className="flex-1" onClick={() => handleSave(true)}>
-            <Eye className="h-4 w-4 mr-2" />
-            {existingExam.isPublished ? "Cập nhật" : "Xuất bản"}
+          <Button className="flex-1" onClick={() => handleSave(true)} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4 mr-2" />
+            )}
+            {originalExam.isPublished ? "Cập nhật" : "Xuất bản"}
           </Button>
         </div>
 

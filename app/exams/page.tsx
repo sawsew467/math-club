@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,60 +22,102 @@ import {
 } from "@/components/ui/select";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { useExamStore } from "@/store/exam-store";
-import { initSampleData } from "@/lib/sample-data";
+import { fetchPublishedExams, fetchStudentExamHistory, ExamAttempt } from "@/lib/api/student";
+import { useAuth } from "@/contexts/AuthContext";
+import { Exam } from "@/types/exam";
 import {
   BookOpen,
   Clock,
-  User,
   Play,
   Search,
   Filter,
-  CheckCircle2,
+  Loader2,
+  RefreshCw,
   Trophy,
-  Database,
+  RotateCcw,
+  Eye,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ExamsPage() {
   const router = useRouter();
-  const { exams, results } = useExamStore();
+  const { user } = useAuth();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [examAttempts, setExamAttempts] = useState<Map<string, ExamAttempt>>(new Map());
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
-  const [mounted, setMounted] = useState(false);
+
+  const loadExams = async () => {
+    setLoading(true);
+    const result = await fetchPublishedExams();
+    if (result.success && result.data) {
+      setExams(result.data);
+    } else {
+      toast.error(result.error || "Không thể tải danh sách đề thi");
+    }
+    setLoading(false);
+  };
+
+  const loadHistory = async () => {
+    if (!user?.id) return;
+
+    const result = await fetchStudentExamHistory(user.id);
+    if (result.success && result.data) {
+      // Create a map of examId -> most recent attempt (API returns sorted by completed_at desc)
+      const attemptsMap = new Map<string, ExamAttempt>();
+      result.data.forEach((attempt) => {
+        // Only keep the first (most recent) attempt for each exam
+        if (!attemptsMap.has(attempt.examId)) {
+          attemptsMap.set(attempt.examId, attempt);
+        }
+      });
+      setExamAttempts(attemptsMap);
+    }
+  };
 
   useEffect(() => {
-    setMounted(true);
+    loadExams();
   }, []);
 
-  // Filter published exams for students
-  const publishedExams = exams.filter((exam) => exam.isPublished);
+  useEffect(() => {
+    loadHistory();
+  }, [user?.id]);
+
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 80) return "text-green-600 bg-green-50 border-green-200";
+    if (percentage >= 60) return "text-blue-600 bg-blue-50 border-blue-200";
+    if (percentage >= 40) return "text-yellow-600 bg-yellow-50 border-yellow-200";
+    return "text-red-600 bg-red-50 border-red-200";
+  };
+
+  // All exams from API are already published
+  const publishedExams = exams;
 
   // Apply filters
   const filteredExams = publishedExams.filter((exam) => {
     const matchesSearch =
       exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exam.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGrade = gradeFilter === "all" || exam.grade === parseInt(gradeFilter);
+    const matchesGrade =
+      gradeFilter === "all" || exam.grade === parseInt(gradeFilter);
     return matchesSearch && matchesGrade;
   });
 
-  const getExamResult = (examId: string) => {
-    return results.find((r) => r.examId === examId);
-  };
-
-  const handleLoadSampleData = () => {
-    const loaded = initSampleData();
-    if (loaded) {
-      toast.success("Đã tải dữ liệu mẫu thành công! Đang làm mới trang...");
-      setTimeout(() => window.location.reload(), 1000);
-    } else {
-      toast.info("Dữ liệu mẫu đã tồn tại");
-    }
-  };
-
-  if (!mounted) {
-    return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Đang tải danh sách đề thi...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -85,7 +133,8 @@ export default function ExamsPage() {
                 Ôn luyện đề thi
               </h1>
               <p className="text-lg text-gray-600">
-                Làm bài thi thử với đề thi chất lượng cao, được AI hỗ trợ giải thích chi tiết
+                Làm bài thi thử với đề thi chất lượng cao, được AI hỗ trợ giải
+                thích chi tiết
               </p>
             </div>
           </div>
@@ -119,6 +168,14 @@ export default function ExamsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={loadExams}
+                  title="Làm mới"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
                 <span className="text-sm text-gray-500">
                   {filteredExams.length} đề thi
                 </span>
@@ -134,31 +191,38 @@ export default function ExamsPage() {
               <div className="max-w-md mx-auto text-center py-16">
                 <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {publishedExams.length === 0 ? "Chưa có đề thi nào" : "Không tìm thấy đề thi"}
+                  {publishedExams.length === 0
+                    ? "Chưa có đề thi nào"
+                    : "Không tìm thấy đề thi"}
                 </h3>
                 <p className="text-gray-500 mb-6">
                   {publishedExams.length === 0
-                    ? "Hãy thử tải dữ liệu mẫu để bắt đầu ôn luyện"
+                    ? "Giáo viên chưa công bố đề thi nào. Vui lòng quay lại sau!"
                     : "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"}
                 </p>
-                {publishedExams.length === 0 && (
-                  <Button onClick={handleLoadSampleData}>
-                    <Database className="mr-2 h-4 w-4" />
-                    Tải dữ liệu mẫu
-                  </Button>
-                )}
+                <Button variant="outline" onClick={loadExams}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Làm mới
+                </Button>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {filteredExams.map((exam) => {
-                  const result = getExamResult(exam.id);
+                  const attempt = examAttempts.get(exam.id);
+                  const hasAttempt = !!attempt;
 
                   return (
                     <Card
                       key={exam.id}
-                      className="group hover:shadow-lg transition-all duration-300 overflow-hidden"
+                      className="group hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col"
                     >
-                      <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
+                      <div
+                        className={`h-1.5 ${
+                          hasAttempt
+                            ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                            : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                        }`}
+                      />
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
@@ -174,7 +238,7 @@ export default function ExamsPage() {
                           </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3 pb-3">
+                      <CardContent className="space-y-3 pb-3 flex-1">
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1.5">
                             <Clock className="h-4 w-4" />
@@ -182,43 +246,54 @@ export default function ExamsPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <BookOpen className="h-4 w-4" />
-                            <span>{exam.questions.length} câu</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-4 w-4" />
-                            <span>{exam.author}</span>
+                            <span>
+                              {exam.questionCount ?? exam.questions.length} câu
+                            </span>
                           </div>
                         </div>
-
-                        {result && (
-                          <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200">
-                            <Trophy className="h-5 w-5 text-green-600" />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-green-800">
-                                {result.score}/{result.totalScore} điểm ({result.percentage.toFixed(0)}%)
-                              </p>
-                              <p className="text-xs text-green-600">
-                                {new Date(result.completedAt).toLocaleDateString("vi-VN")}
-                              </p>
+                      </CardContent>
+                      <CardFooter className="pt-0 flex-col gap-2">
+                        {/* Show previous result */}
+                        {hasAttempt && (
+                          <div
+                            className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-sm ${getScoreColor(
+                              attempt.percentage
+                            )}`}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <Trophy className="h-4 w-4" />
+                              <span className="font-medium">Kết quả:</span>
                             </div>
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            <span className="font-bold">
+                              {attempt.score}/{attempt.totalScore} ({Math.round(attempt.percentage)}%)
+                            </span>
                           </div>
                         )}
-                      </CardContent>
-                      <CardFooter className="gap-2 pt-0">
-                        <Button
-                          className="flex-1"
-                          onClick={() => router.push(`/student/exam/${exam.id}`)}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          {result ? "Làm lại" : "Làm bài"}
-                        </Button>
-                        {result && (
+                        {hasAttempt ? (
+                          <div className="w-full flex gap-2">
+                            <Button
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => router.push(`/student/result/${attempt.id}`)}
+                            >
+                              <Eye className="mr-1.5 h-4 w-4" />
+                              Xem kết quả
+                            </Button>
+                            <Button
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                              onClick={() => router.push(`/student/exam/${exam.id}`)}
+                            >
+                              <RotateCcw className="mr-1.5 h-4 w-4" />
+                              Làm lại
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
-                            variant="outline"
-                            onClick={() => router.push(`/student/result/${exam.id}`)}
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                            onClick={() => router.push(`/student/exam/${exam.id}`)}
                           >
-                            Xem kết quả
+                            <Play className="mr-2 h-4 w-4" />
+                            Bắt đầu làm bài
                           </Button>
                         )}
                       </CardFooter>

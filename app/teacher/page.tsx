@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { useExamStore } from "@/store/exam-store";
-import { initSampleData } from "@/lib/sample-data";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchExams, deleteExam as deleteExamApi } from "@/lib/api/exams";
+import { Exam } from "@/types/exam";
 import {
   PlusCircle,
   BookOpen,
@@ -26,43 +26,62 @@ import {
   Trash2,
   Eye,
   Play,
-  Database,
   FileText,
   Users,
-  TrendingUp,
-  BarChart3,
   LogIn,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherDashboard() {
   const router = useRouter();
-  const { exams, deleteExam, results } = useExamStore();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const { isTeacher, isLoading: authLoading, teacherProfile } = useAuth();
+
+  const loadExams = useCallback(async () => {
+    if (!isTeacher) return;
+
+    setIsLoading(true);
+    const result = await fetchExams();
+
+    if (result.success && result.data) {
+      setExams(result.data);
+    } else {
+      toast.error(result.error || "Không thể tải danh sách đề thi");
+    }
+    setIsLoading(false);
+  }, [isTeacher]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (mounted && isTeacher && !authLoading) {
+      loadExams();
+    }
+  }, [mounted, isTeacher, authLoading, loadExams]);
+
   const publishedExams = exams.filter((exam) => exam.isPublished);
   const draftExams = exams.filter((exam) => !exam.isPublished);
 
-  const handleDeleteExam = (id: string) => {
+  const handleDeleteExam = async (id: string) => {
     if (confirm("Bạn có chắc muốn xóa đề thi này?")) {
-      deleteExam(id);
-      toast.success("Đã xóa đề thi");
+      const result = await deleteExamApi(id);
+      if (result.success) {
+        setExams((prev) => prev.filter((e) => e.id !== id));
+        toast.success("Đã xóa đề thi");
+      } else {
+        toast.error(result.error || "Không thể xóa đề thi");
+      }
     }
   };
 
-  const handleLoadSampleData = () => {
-    const loaded = initSampleData();
-    if (loaded) {
-      toast.success("Đã tải dữ liệu mẫu thành công!");
-      setTimeout(() => window.location.reload(), 1000);
-    } else {
-      toast.info("Dữ liệu mẫu đã tồn tại");
-    }
+  const handleRefresh = () => {
+    loadExams();
   };
 
   if (!mounted || authLoading) {
@@ -121,12 +140,10 @@ export default function TeacherDashboard() {
                 </p>
               </div>
               <div className="flex gap-3">
-                {exams.length === 0 && (
-                  <Button variant="outline" onClick={handleLoadSampleData}>
-                    <Database className="mr-2 h-4 w-4" />
-                    Tải dữ liệu mẫu
-                  </Button>
-                )}
+                <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </Button>
                 <Button asChild>
                   <Link href="/teacher/editor">
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -189,7 +206,7 @@ export default function TeacherDashboard() {
                     <Users className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{results.length}</p>
+                    <p className="text-2xl font-bold">-</p>
                     <p className="text-sm text-gray-500">Lượt làm bài</p>
                   </div>
                 </div>
@@ -200,7 +217,14 @@ export default function TeacherDashboard() {
 
         {/* Exams List */}
         <section className="container mx-auto px-4 py-6">
-          {exams.length === 0 ? (
+          {isLoading ? (
+            <Card>
+              <CardContent className="text-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <p className="text-gray-500">Đang tải danh sách đề thi...</p>
+              </CardContent>
+            </Card>
+          ) : exams.length === 0 ? (
             <Card>
               <CardContent className="text-center py-16">
                 <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -208,13 +232,9 @@ export default function TeacherDashboard() {
                   Chưa có đề thi nào
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  Bắt đầu bằng việc tạo đề thi đầu tiên hoặc tải dữ liệu mẫu
+                  Bắt đầu bằng việc tạo đề thi đầu tiên
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={handleLoadSampleData} variant="outline">
-                    <Database className="mr-2 h-4 w-4" />
-                    Tải dữ liệu mẫu
-                  </Button>
                   <Button asChild>
                     <Link href="/teacher/editor">
                       <PlusCircle className="mr-2 h-4 w-4" />

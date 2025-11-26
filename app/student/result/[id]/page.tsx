@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,27 +12,62 @@ import ContentDisplay from '@/components/editor/ContentDisplay';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { useExamStore } from '@/store/exam-store';
-import { CheckCircle2, XCircle, Home, RefreshCw, BookOpen, MessageCircle } from 'lucide-react';
+import { fetchSessionResult } from '@/lib/api/student';
+import { Exam, ExamResult } from '@/types/exam';
+import { CheckCircle2, XCircle, Home, RefreshCw, BookOpen, MessageCircle, Loader2, Trophy, Clock, Target, TrendingUp, ArrowLeft } from 'lucide-react';
 
 export default function ExamResultPage() {
   const router = useRouter();
   const params = useParams();
-  const examId = params.id as string;
+  const sessionId = params.id as string;
 
-  const { getExam, getResult } = useExamStore();
-  const exam = getExam(examId);
-  const result = getResult(examId);
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [result, setResult] = useState<ExamResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [showExplanations, setShowExplanations] = useState<Set<string>>(new Set());
 
-  if (!exam || !result) {
+  // Load result on mount
+  useEffect(() => {
+    const loadResult = async () => {
+      setIsLoading(true);
+      const response = await fetchSessionResult(sessionId);
+
+      if (response.success && response.data) {
+        setExam(response.data.exam);
+        setResult(response.data.result);
+      } else {
+        setError(response.error || 'Không tìm thấy kết quả');
+      }
+      setIsLoading(false);
+    };
+
+    loadResult();
+  }, [sessionId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-500">Đang tải kết quả...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !exam || !result) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
         <main className="flex-1 container mx-auto py-8 px-4">
           <Alert>
-            <AlertDescription>Không tìm thấy kết quả thi!</AlertDescription>
+            <AlertDescription>{error || 'Không tìm thấy kết quả thi!'}</AlertDescription>
           </Alert>
           <Button onClick={() => router.push('/exams')} className="mt-4">
             <Home className="mr-2 h-4 w-4" />
@@ -76,60 +111,96 @@ export default function ExamResultPage() {
     return `${minutes} phút ${secs} giây`;
   };
 
+  const correctCount = result.answers.filter(a => a.isCorrect).length;
+  const incorrectCount = result.answers.filter(a => !a.isCorrect).length;
+
+  // Determine score grade for styling
+  const getScoreGradient = (percentage: number) => {
+    if (percentage >= 80) return 'from-green-500 to-emerald-500';
+    if (percentage >= 60) return 'from-yellow-500 to-amber-500';
+    if (percentage >= 40) return 'from-orange-500 to-red-400';
+    return 'from-red-500 to-red-600';
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
       <main className="flex-1 container mx-auto py-8 max-w-5xl px-4">
-      {/* Header with score */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-2xl">{exam.title}</CardTitle>
-          <CardDescription>
-            Học sinh: {result.studentName} • Ngày thi: {new Date(result.completedAt).toLocaleDateString('vi-VN')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Điểm số</p>
-              <p className={`text-3xl font-bold ${getScoreColor(result.percentage)}`}>
-                {result.score}/{result.totalScore}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Phần trăm</p>
-              <p className={`text-3xl font-bold ${getScoreColor(result.percentage)}`}>
-                {result.percentage.toFixed(1)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Thời gian</p>
-              <p className="text-xl font-semibold">
-                {formatTime(result.timeSpent)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Đánh giá</p>
-              <p className="text-xl font-semibold">
-                {getScoreMessage(result.percentage)}
-              </p>
-            </div>
-          </div>
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/exams')}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Quay lại danh sách đề thi
+        </Button>
 
-          <Separator className="my-4" />
+        {/* Hero Score Card */}
+        <Card className="mb-8 overflow-hidden shadow-xl border-0">
+          <div className={`h-2 bg-gradient-to-r ${getScoreGradient(result.percentage)}`} />
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-4">
+              <Trophy className={`h-10 w-10 ${result.percentage >= 60 ? 'text-yellow-500' : 'text-gray-400'}`} />
+            </div>
+            <CardTitle className="text-2xl md:text-3xl">{exam.title}</CardTitle>
+            <CardDescription className="text-base">
+              <span className="font-medium">{result.studentName}</span>
+              <span className="mx-2">•</span>
+              <span>{new Date(result.completedAt).toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {/* Main Score Display */}
+            <div className="text-center mb-6">
+              <div className={`inline-flex items-baseline gap-1 text-6xl md:text-7xl font-bold bg-gradient-to-r ${getScoreGradient(result.percentage)} bg-clip-text text-transparent`}>
+                <span>{result.percentage.toFixed(0)}</span>
+                <span className="text-3xl">%</span>
+              </div>
+              <p className="text-2xl mt-2">{getScoreMessage(result.percentage)}</p>
+            </div>
 
-          <div className="flex gap-4 justify-center">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <span>Đúng: {result.answers.filter(a => a.isCorrect).length}</span>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
+                <Target className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                <p className="text-2xl font-bold text-blue-900">{result.score.toFixed(1)}/{result.totalScore}</p>
+                <p className="text-sm text-blue-600">Điểm số</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center">
+                <Clock className="h-6 w-6 mx-auto mb-2 text-purple-600" />
+                <p className="text-2xl font-bold text-purple-900">{formatTime(result.timeSpent)}</p>
+                <p className="text-sm text-purple-600">Thời gian</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center">
+                <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                <p className="text-2xl font-bold text-green-900">{correctCount}</p>
+                <p className="text-sm text-green-600">Câu đúng</p>
+              </div>
+              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 text-center">
+                <XCircle className="h-6 w-6 mx-auto mb-2 text-red-600" />
+                <p className="text-2xl font-bold text-red-900">{incorrectCount}</p>
+                <p className="text-sm text-red-600">Câu sai</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
-              <span>Sai: {result.answers.filter(a => !a.isCorrect).length}</span>
+
+            {/* Progress bar for correct/incorrect */}
+            <div className="bg-gray-100 rounded-full h-4 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-green-500 to-green-400 h-full transition-all duration-1000"
+                style={{ width: `${(correctCount / exam.questions.length) * 100}%` }}
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              {correctCount}/{exam.questions.length} câu trả lời đúng
+            </p>
+          </CardContent>
+        </Card>
 
       {/* Detailed results */}
       <Tabs defaultValue="all" className="space-y-4">
@@ -204,14 +275,23 @@ export default function ExamResultPage() {
       </Tabs>
 
       {/* Actions */}
-      <div className="flex gap-4 justify-center mt-8">
-        <Button onClick={() => router.push('/exams')} variant="outline">
-          <Home className="mr-2 h-4 w-4" />
-          Danh sách đề thi
+      <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 pb-8">
+        <Button
+          onClick={() => router.push('/exams')}
+          variant="outline"
+          size="lg"
+          className="min-w-[180px]"
+        >
+          <Home className="mr-2 h-5 w-5" />
+          Xem đề thi khác
         </Button>
-        <Button onClick={() => router.push(`/student/exam/${examId}`)}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Làm lại
+        <Button
+          onClick={() => router.push(`/student/exam/${result.examId}`)}
+          size="lg"
+          className="min-w-[180px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          <RefreshCw className="mr-2 h-5 w-5" />
+          Làm lại bài thi
         </Button>
       </div>
       </main>
@@ -241,6 +321,7 @@ function QuestionResult({
   // Strip HTML tags for question context
   const stripHtml = (html: string) => {
     if (!html) return '';
+    if (typeof document === 'undefined') return html.replace(/<[^>]*>/g, '');
     const tmp = document.createElement('DIV');
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
@@ -263,42 +344,57 @@ function QuestionResult({
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Câu {index + 1}</span>
-              {question.type === 'essay' ? (
-                <Badge className="bg-yellow-100 text-yellow-800">
-                  Cần chấm điểm
-                </Badge>
-              ) : isCorrect ? (
-                <Badge className="bg-green-100 text-green-800">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  Đúng
-                </Badge>
-              ) : (
-                <Badge className="bg-red-100 text-red-800">
-                  <XCircle className="mr-1 h-3 w-3" />
-                  Sai
-                </Badge>
-              )}
-              <Badge variant="outline">{question.points} điểm</Badge>
+      <Card className={`overflow-hidden shadow-md transition-all hover:shadow-lg ${
+        question.type === 'essay' ? 'border-l-4 border-l-yellow-400' :
+        isCorrect ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'
+      }`}>
+        <CardHeader className="pb-3 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                question.type === 'essay' ? 'bg-yellow-500' :
+                isCorrect ? 'bg-green-500' : 'bg-red-500'
+              }`}>
+                {index + 1}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  {question.type === 'essay' ? (
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      Cần chấm điểm
+                    </Badge>
+                  ) : isCorrect ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-300">
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      Đúng
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-red-100 text-red-800 border-red-300">
+                      <XCircle className="mr-1 h-3 w-3" />
+                      Sai
+                    </Badge>
+                  )}
+                  <Badge variant="secondary">{question.points} điểm</Badge>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onToggleExplanation}
-              >
-                <BookOpen className="mr-2 h-4 w-4" />
-                {showExplanation ? 'Ẩn' : 'Xem'} giải thích
-              </Button>
+            <div className="flex gap-2 sm:ml-auto">
+              {question.explanation && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleExplanation}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  {showExplanation ? 'Ẩn' : 'Xem'} giải thích
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setChatOpen(true)}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Hỏi AI

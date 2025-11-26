@@ -30,6 +30,7 @@ export interface Exam {
   subject: string; // Môn học
   duration: number; // Thời gian làm bài (phút)
   questions: Question[];
+  questionCount?: number; // For list view when questions aren't loaded
   createdAt: Date;
   updatedAt: Date;
   author: string;
