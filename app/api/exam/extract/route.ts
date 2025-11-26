@@ -8,7 +8,7 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { images } = body;
+    const { images, batchInfo } = body;
 
     if (!images || !Array.isArray(images) || images.length === 0) {
       return NextResponse.json(
@@ -17,7 +17,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Processing ${images.length} PDF pages...`);
+    // Batch processing info
+    const isBatchMode = !!batchInfo;
+    const batchNumber = batchInfo?.batchNumber || 1;
+    const totalBatches = batchInfo?.totalBatches || 1;
+    const startPage = batchInfo?.startPage || 1;
+    const endPage = batchInfo?.endPage || images.length;
+    const totalPages = batchInfo?.totalPages || images.length;
+
+    console.log(`Processing ${images.length} pages (batch ${batchNumber}/${totalBatches}, pages ${startPage}-${endPage}/${totalPages})...`);
 
     // System message for better instruction following
     const systemPrompt = `You are a Vietnamese math exam analyzer. Extract questions and answers from exam images.
@@ -66,13 +74,23 @@ Wrap ALL math in $...$: $\\frac{1}{3}$, $x^2$, $(-\\infty; 0)$
 - Use <br> for line breaks
 - Use exact point values from exam`;
 
-    const userPrompt = `Extract ALL questions from these ${images.length} exam pages.
+    // Adjust prompt based on batch mode
+    const batchContext = isBatchMode
+      ? `\nNOTE: You are processing pages ${startPage}-${endPage} of a ${totalPages}-page document (batch ${batchNumber}/${totalBatches}).
+- If this batch contains questions without answers, extract them anyway (answers may be in another batch)
+- If this batch contains only answer key ("HƯỚNG DẪN CHẤM"), skip question extraction - return empty questions array
+- Extract whatever questions are visible in these pages`
+      : '';
+
+    const userPrompt = `Extract ALL questions from these ${images.length} exam pages.${batchContext}
 
 INSTRUCTIONS:
-1. Scan ALL pages - questions are at the start, answer key ("HƯỚNG DẪN CHẤM") is at the end
-2. For each question, find its answer in the answer key section
-3. For ESSAY questions: put the full solution in "sampleAnswer", leave "explanation" and "rubric" empty
-4. DO NOT make up any answers - only extract what's in the document
+1. Scan ALL provided pages - questions may be at the start, answer key ("HƯỚNG DẪN CHẤM") may be at the end
+2. For each question you find, extract the complete question content
+3. If answer key is visible, match answers to questions
+4. For ESSAY questions: put the full solution in "sampleAnswer", leave "explanation" and "rubric" empty
+5. DO NOT make up any answers - only extract what's in the document
+6. If a page only contains answer key without questions, return {"questions": []}
 
 Return ONLY the JSON object.`;
 

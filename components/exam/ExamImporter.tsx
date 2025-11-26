@@ -56,43 +56,89 @@ export function ExamImporter({ onImportSuccess }: ExamImporterProps) {
     setProgress(0);
 
     try {
-      // Step 1: Convert PDF to images (client-side)
+      // Step 1: Convert PDF to images (client-side) with lower scale for smaller payload
       setStatusMessage('Đang chuyển đổi PDF thành hình ảnh...');
-      setProgress(10);
+      setProgress(5);
 
       const images = await convertPDFToImages(selectedFile, {
-        scale: 2,
-        maxPages: 20, // Increase to 20 pages to capture answer keys at the end
+        scale: 1.5, // Reduced from 2 for smaller payload
+        maxPages: 20,
       });
 
-      setProgress(40);
-      setStatusMessage(`Đã chuyển đổi ${images.length} trang. Đang gửi cho AI phân tích...`);
+      setProgress(15);
 
-      // Step 2: Send images to API
-      const response = await fetch('/api/exam/extract', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          images: images.map(img => img.base64),
-        }),
-      });
+      const totalPages = images.length;
+      const BATCH_SIZE = 5; // Process 5 pages at a time to stay within Vercel limits
+      const batches: string[][] = [];
 
-      setProgress(70);
-      setStatusMessage('Đang xử lý kết quả từ AI...');
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Có lỗi xảy ra khi xử lý file');
+      // Split images into batches
+      for (let i = 0; i < images.length; i += BATCH_SIZE) {
+        batches.push(images.slice(i, i + BATCH_SIZE).map(img => img.base64));
       }
 
-      if (data.success && data.questions) {
+      setStatusMessage(`Đã chuyển đổi ${totalPages} trang. Xử lý theo ${batches.length} đợt...`);
+
+      // Step 2: Process batches sequentially
+      const allQuestions: Question[] = [];
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const batchNum = batchIndex + 1;
+        const startPage = batchIndex * BATCH_SIZE + 1;
+        const endPage = Math.min((batchIndex + 1) * BATCH_SIZE, totalPages);
+
+        setStatusMessage(`Đang phân tích trang ${startPage}-${endPage}/${totalPages} (đợt ${batchNum}/${batches.length})...`);
+
+        // Calculate progress: 15% for conversion, 70% for processing batches, 15% for finishing
+        const batchProgress = 15 + ((batchIndex + 1) / batches.length) * 70;
+        setProgress(Math.round(batchProgress));
+
+        const response = await fetch('/api/exam/extract', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            images: batch,
+            batchInfo: {
+              batchNumber: batchNum,
+              totalBatches: batches.length,
+              startPage,
+              endPage,
+              totalPages,
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // If one batch fails, continue with others but log error
+          console.error(`Batch ${batchNum} failed:`, data.error);
+          continue;
+        }
+
+        if (data.success && data.questions) {
+          // Add batch questions with adjusted IDs
+          const batchQuestions = data.questions.map((q: Question, idx: number) => ({
+            ...q,
+            id: `q-${Date.now()}-${allQuestions.length + idx}`,
+          }));
+          allQuestions.push(...batchQuestions);
+        }
+      }
+
+      // Step 3: Deduplicate questions (remove duplicates that might appear across batches)
+      setProgress(90);
+      setStatusMessage('Đang xử lý và loại bỏ trùng lặp...');
+
+      const uniqueQuestions = deduplicateQuestions(allQuestions);
+
+      if (uniqueQuestions.length > 0) {
         setProgress(100);
         setStatusMessage('Hoàn thành!');
-        setSuccess(data.message || `Đã trích xuất ${data.questions.length} câu hỏi thành công!`);
-        onImportSuccess(data.questions);
+        setSuccess(`Đã trích xuất ${uniqueQuestions.length} câu hỏi từ ${totalPages} trang!`);
+        onImportSuccess(uniqueQuestions);
 
         // Reset form after a delay
         setTimeout(() => {
@@ -115,6 +161,23 @@ export function ExamImporter({ onImportSuccess }: ExamImporterProps) {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Helper function to deduplicate questions based on content similarity
+  const deduplicateQuestions = (questions: Question[]): Question[] => {
+    const seen = new Map<string, Question>();
+
+    for (const q of questions) {
+      // Create a simple hash from first 100 chars of question text
+      const textContent = q.question.replace(/<[^>]*>/g, '').trim();
+      const hash = textContent.substring(0, 100).toLowerCase();
+
+      if (!seen.has(hash)) {
+        seen.set(hash, q);
+      }
+    }
+
+    return Array.from(seen.values());
   };
 
   const handleButtonClick = () => {
@@ -213,12 +276,12 @@ export function ExamImporter({ onImportSuccess }: ExamImporterProps) {
 
         {/* Instructions */}
         <div className="text-sm text-muted-foreground space-y-2 border-t pt-4">
-          <p className="font-semibold">Tính năng mới - GPT-4 Vision:</p>
+          <p className="font-semibold">Tính năng GPT-4 Vision:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>✅ <strong>Nhận dạng công thức toán</strong>: MathType, ký tự đặc biệt tự động convert sang LaTeX</li>
             <li>✅ <strong>Xử lý hình ảnh</strong>: AI mô tả chi tiết hình vẽ, đồ thị trong đề thi</li>
             <li>✅ <strong>Đa dạng dạng câu hỏi</strong>: Trắc nghiệm, Đúng/Sai, Điền vào, Tự luận</li>
-            <li>✅ <strong>Giới hạn</strong>: Tối đa 20 trang (bao gồm cả hướng dẫn chấm), file {'<'} 10MB</li>
+            <li>✅ <strong>Xử lý PDF lớn</strong>: Tối đa 20 trang, xử lý theo batch 5 trang/lần</li>
             <li>⚠️ <strong>Quan trọng</strong>: Luôn kiểm tra lại kết quả AI trước khi lưu!</li>
           </ul>
         </div>
