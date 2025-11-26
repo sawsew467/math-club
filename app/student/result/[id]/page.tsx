@@ -340,6 +340,7 @@ function QuestionResult({
     isCorrect: isCorrect,
     points: question.points,
     subQuestions: question.subQuestions, // For true-false with multiple statements
+    sampleAnswer: question.sampleAnswer, // For essay questions
   };
 
   return (
@@ -557,11 +558,11 @@ function QuestionResult({
           <div className="space-y-3">
             <div className="p-3 bg-gray-50 rounded-md">
               <p className="font-medium mb-2">Câu trả lời của bạn:</p>
-              <ContentDisplay content={String(userAnswer || 'Không có câu trả lời')} />
+              <ContentDisplay content={userAnswer || 'Không có câu trả lời'} />
             </div>
             <div className="p-3 bg-green-50 rounded-md">
               <p className="font-medium mb-2">Đáp án mẫu:</p>
-              <ContentDisplay content={String(question.correctAnswer || '')} />
+              <ContentDisplay content={question.sampleAnswer || '(Chưa có đáp án mẫu)'} />
             </div>
             {question.rubric && (
               <div className="p-3 bg-blue-50 rounded-md">

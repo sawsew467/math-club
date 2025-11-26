@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ContentDisplay from '@/components/editor/ContentDisplay';
 import CustomEditorDynamic from '@/components/editor/CustomEditorDynamic';
-import { fetchExamForStudent, createExamSession, completeExamSession } from '@/lib/api/student';
+import { fetchExamForStudent, createExamSession, completeExamSession, gradeEssayQuestion } from '@/lib/api/student';
 import { Exam, Question, SubQuestion } from '@/types/exam';
 import { Clock, ChevronLeft, ChevronRight, Send, Loader2, BookOpen, User, AlertTriangle, CheckCircle2, HelpCircle, ArrowLeft, Timer } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ export default function ExamTakingPage() {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradingStatus, setGradingStatus] = useState('');
 
   // Get student name from profile
   const studentName = profile?.full_name || '';
@@ -196,9 +197,17 @@ export default function ExamTakingPage() {
 
     setIsSubmitting(true);
 
-    // Calculate score
+    // Calculate score - handle essay questions with AI grading
     let totalScore = 0;
-    const answers = exam.questions.map(question => {
+    const answers: Array<{
+      questionId: string;
+      userAnswer: string | number;
+      isCorrect: boolean;
+      pointsEarned: number;
+    }> = [];
+
+    // Process questions sequentially (needed for AI grading)
+    for (const question of exam.questions) {
       const userAnswer = userAnswers.get(question.id);
 
       // Handle true-false with subQuestions
@@ -218,37 +227,85 @@ export default function ExamTakingPage() {
           // Invalid JSON, all wrong
         }
 
-        // All sub-questions must be correct for full points
         const isAllCorrect = subCorrect === totalSubs;
-        // Partial scoring: proportional points based on correct sub-questions
         const partialScore = (subCorrect / totalSubs) * question.points;
 
         totalScore += partialScore;
-
-        return {
+        answers.push({
           questionId: question.id,
           userAnswer: userAnswer || '',
           isCorrect: isAllCorrect,
           pointsEarned: partialScore,
-        };
+        });
+        continue;
       }
 
-      // Handle other question types
+      // Handle essay questions with AI grading
+      if (question.type === 'essay') {
+        const studentAnswer = String(userAnswer || '');
+
+        // Only grade if student provided an answer
+        if (hasContent(studentAnswer)) {
+          // Show grading status
+          const questionIndex = exam.questions.indexOf(question) + 1;
+          setGradingStatus(`Đang chấm câu tự luận ${questionIndex}...`);
+
+          const gradeResult = await gradeEssayQuestion(
+            question.question,
+            studentAnswer,
+            question.sampleAnswer || question.explanation || '',
+            question.rubric || '',
+            question.points
+          );
+
+          if (gradeResult.success && gradeResult.data) {
+            totalScore += gradeResult.data.score;
+            answers.push({
+              questionId: question.id,
+              userAnswer: studentAnswer,
+              isCorrect: gradeResult.data.score >= question.points * 0.8, // 80% is "correct"
+              pointsEarned: gradeResult.data.score,
+            });
+          } else {
+            // AI grading failed, give 0 points
+            answers.push({
+              questionId: question.id,
+              userAnswer: studentAnswer,
+              isCorrect: false,
+              pointsEarned: 0,
+            });
+          }
+        } else {
+          // No answer provided
+          answers.push({
+            questionId: question.id,
+            userAnswer: '',
+            isCorrect: false,
+            pointsEarned: 0,
+          });
+        }
+        continue;
+      }
+
+      // Handle multiple-choice, fill-in questions
       const isCorrect = userAnswer !== undefined &&
         String(userAnswer) === String(question.correctAnswer);
 
       const pointsEarned = isCorrect ? question.points : 0;
       totalScore += pointsEarned;
 
-      return {
+      answers.push({
         questionId: question.id,
         userAnswer: userAnswer || '',
         isCorrect,
         pointsEarned,
-      };
-    });
+      });
+    }
 
     const timeSpent = exam.duration * 60 - timeRemaining;
+
+    // Clear grading status and submit
+    setGradingStatus('Đang lưu kết quả...');
 
     // Submit to Supabase
     const result = await completeExamSession(
@@ -260,6 +317,7 @@ export default function ExamTakingPage() {
     );
 
     setIsSubmitting(false);
+    setGradingStatus('');
 
     if (result.success) {
       toast.success('Đã nộp bài thành công!');
@@ -446,12 +504,25 @@ export default function ExamTakingPage() {
     );
   }
 
+  // Helper to check if HTML content has meaningful content (not just empty tags)
+  const hasContent = (html: string): boolean => {
+    if (!html) return false;
+    // Remove HTML tags and check if there's text or image content
+    const hasImage = html.includes('<img') || html.includes('data:image');
+    const textContent = html.replace(/<[^>]*>/g, '').trim();
+    return hasImage || textContent.length > 0;
+  };
+
   // Calculate answered questions count
   const answeredCount = exam.questions.filter(q => {
     if (q.type === 'true-false' && q.subQuestions && q.subQuestions.length > 0) {
       return isTrueFalseAnswered(q.id, q.subQuestions);
     }
-    return userAnswers.has(q.id) && userAnswers.get(q.id) !== '';
+    const answer = userAnswers.get(q.id);
+    if (q.type === 'essay') {
+      return hasContent(String(answer || ''));
+    }
+    return answer !== undefined && answer !== '';
   }).length;
 
   // Exam taking screen
@@ -567,6 +638,7 @@ export default function ExamTakingPage() {
                     <div className="space-y-2">
                       <Label>Nhập câu trả lời của bạn:</Label>
                       <CustomEditorDynamic
+                        key={currentQuestion.id}
                         value={String(userAnswers.get(currentQuestion.id) || '')}
                         onChange={(value) => handleAnswerChange(value)}
                         placeholder="Viết câu trả lời của bạn ở đây..."
@@ -729,6 +801,8 @@ export default function ExamTakingPage() {
                   let isAnswered = false;
                   if (question.type === 'true-false' && question.subQuestions && question.subQuestions.length > 0) {
                     isAnswered = isTrueFalseAnswered(question.id, question.subQuestions);
+                  } else if (question.type === 'essay') {
+                    isAnswered = hasContent(String(userAnswers.get(question.id) || ''));
                   } else {
                     isAnswered = userAnswers.has(question.id) && userAnswers.get(question.id) !== '';
                   }
@@ -778,11 +852,16 @@ export default function ExamTakingPage() {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {gradingStatus || 'Đang nộp bài...'}
+                  </>
                 ) : (
-                  <Send className="mr-2 h-4 w-4" />
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Nộp bài ({answeredCount}/{exam.questions.length})
+                  </>
                 )}
-                Nộp bài ({answeredCount}/{exam.questions.length})
               </Button>
             </CardContent>
           </Card>

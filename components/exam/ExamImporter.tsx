@@ -62,7 +62,7 @@ export function ExamImporter({ onImportSuccess }: ExamImporterProps) {
 
       const images = await convertPDFToImages(selectedFile, {
         scale: 2,
-        maxPages: 10, // Limit to 10 pages to avoid too large request
+        maxPages: 20, // Increase to 20 pages to capture answer keys at the end
       });
 
       setProgress(40);
@@ -218,7 +218,7 @@ export function ExamImporter({ onImportSuccess }: ExamImporterProps) {
             <li>✅ <strong>Nhận dạng công thức toán</strong>: MathType, ký tự đặc biệt tự động convert sang LaTeX</li>
             <li>✅ <strong>Xử lý hình ảnh</strong>: AI mô tả chi tiết hình vẽ, đồ thị trong đề thi</li>
             <li>✅ <strong>Đa dạng dạng câu hỏi</strong>: Trắc nghiệm, Đúng/Sai, Điền vào, Tự luận</li>
-            <li>✅ <strong>Giới hạn</strong>: Tối đa 10 trang đầu tiên, file {'<'} 10MB</li>
+            <li>✅ <strong>Giới hạn</strong>: Tối đa 20 trang (bao gồm cả hướng dẫn chấm), file {'<'} 10MB</li>
             <li>⚠️ <strong>Quan trọng</strong>: Luôn kiểm tra lại kết quả AI trước khi lưu!</li>
           </ul>
         </div>

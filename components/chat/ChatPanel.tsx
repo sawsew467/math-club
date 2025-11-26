@@ -47,6 +47,7 @@ export interface QuestionContextType {
   isCorrect?: boolean;
   points: number;
   subQuestions?: SubQuestion[]; // For true-false with multiple statements
+  sampleAnswer?: string; // For essay questions
 }
 
 interface ChatPanelProps {
@@ -391,8 +392,38 @@ export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
                       </div>
                     )}
 
-                  {/* Answer Summary */}
-                  {!(
+                  {/* Essay Question - Special Display */}
+                  {questionContext.type === "essay" && (
+                    <div className="space-y-3">
+                      <div className="bg-white p-3 rounded-lg border">
+                        <h4 className="font-semibold text-xs text-muted-foreground mb-2">
+                          Câu trả lời của bạn:
+                        </h4>
+                        <div className="text-sm">
+                          {questionContext.userAnswer ? (
+                            <ContentDisplay content={String(questionContext.userAnswer)} />
+                          ) : (
+                            <span className="text-gray-500">Chưa trả lời</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                        <h4 className="font-semibold text-xs text-green-700 mb-2">
+                          Đáp án mẫu:
+                        </h4>
+                        <div className="text-sm">
+                          {questionContext.sampleAnswer ? (
+                            <ContentDisplay content={questionContext.sampleAnswer} />
+                          ) : (
+                            <span className="text-gray-500">(Chưa có đáp án mẫu)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Answer Summary - Non-essay, non-true-false */}
+                  {questionContext.type !== "essay" && !(
                     questionContext.type === "true-false" &&
                     questionContext.subQuestions &&
                     questionContext.subQuestions.length > 0
@@ -435,7 +466,11 @@ export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
 
                   {/* Result Badge */}
                   <div className="flex items-center gap-2">
-                    {questionContext.isCorrect ? (
+                    {questionContext.type === "essay" ? (
+                      <Badge className="bg-yellow-100 text-yellow-800">
+                        Cần chấm điểm ({questionContext.points} điểm)
+                      </Badge>
+                    ) : questionContext.isCorrect ? (
                       <Badge className="bg-green-100 text-green-800">
                         <CheckCircle2 className="mr-1 h-3 w-3" /> Đúng (+
                         {questionContext.points} điểm)
@@ -447,8 +482,8 @@ export function ChatPanel({ open, onClose, questionContext }: ChatPanelProps) {
                     )}
                   </div>
 
-                  {/* Explanation */}
-                  {questionContext.explanation && (
+                  {/* Explanation - only for non-essay questions */}
+                  {questionContext.type !== "essay" && questionContext.explanation && (
                     <div>
                       <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                         Giải thích:

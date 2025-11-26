@@ -20,90 +20,59 @@ export async function POST(request: NextRequest) {
     console.log(`Processing ${images.length} PDF pages...`);
 
     // System message for better instruction following
-    const systemPrompt = `You are a Vietnamese math exam analyzer. Your task is to extract BOTH questions AND their answer keys from exam images.
+    const systemPrompt = `You are a Vietnamese math exam analyzer. Extract questions and answers from exam images.
 
-CRITICAL: Vietnamese exams often have TWO sections:
-1. "ĐỀ THI" or "ĐỀ KIỂM TRA" - The exam questions
-2. "HƯỚNG DẪN CHẤM" or "ĐÁP ÁN" - The answer key with detailed solutions
+=== STRUCTURE OF VIETNAMESE EXAMS ===
+1. "ĐỀ THI" / "ĐỀ KIỂM TRA" - Exam questions (first pages)
+2. "HƯỚNG DẪN CHẤM" / "ĐÁP ÁN" - Answer key (last pages)
 
-YOU MUST:
-1. Extract ALL questions from the exam
-2. Find the corresponding answers in "HƯỚNG DẪN CHẤM" section
-3. Include COMPLETE detailed solutions/explanations (lời giải chi tiết)
-4. For essay questions: include the full sample answer (đáp án mẫu) and grading rubric
+=== CRITICAL RULES ===
+⚠️ Extract answers ONLY from "HƯỚNG DẪN CHẤM" section - NEVER make up answers!
+⚠️ If no answer exists in the PDF for a question, use empty string ""
 
-MATH FORMATTING - CRITICAL:
-ALL mathematical expressions MUST be wrapped in dollar signs $...$. Never output raw LaTeX commands.
+=== QUESTION TYPES ===
+- "multiple-choice": Options A, B, C, D → correctAnswer is index 0-3
+- "true-false": Subquestions a, b, c, d with Đ/S → use subQuestions array
+- "fill-in": Short answer → correctAnswer is the answer string
+- "essay": Long answer → sampleAnswer is the full solution from answer key
 
-CORRECT examples:
-- Fractions: $\\frac{1}{3}$, $\\frac{x-1}{x+2}$ (NOT \\frac{1}{3})
-- Infinity: $+\\infty$, $-\\infty$ (NOT +\\infty or -\infty)
-- Intervals: $(-\\infty; 0)$, $(2; +\\infty)$, $[0; 2]$ (NOT (-\\infty; 0))
-- Powers: $x^2$, $x^{n+1}$ (NOT x^2)
-- Roots: $\\sqrt{x}$, $\\sqrt[3]{x}$ (NOT \\sqrt{x})
-- Greek letters: $\\alpha$, $\\beta$, $\\Delta$ (NOT \\alpha)
-- Equations: $y = f(x)$, $y' = 2x - 1$
-- Sets: $x \\in \\mathbb{R}$, $\\forall x$
-- Comparisons: $x \\leq 5$, $x \\geq 0$, $x \\neq 2$
+=== FOR ESSAY QUESTIONS ===
+- "sampleAnswer": Extract the COMPLETE solution from "HƯỚNG DẪN CHẤM"
+- "explanation": Leave EMPTY "" (we use sampleAnswer for essays)
+- "rubric": Leave EMPTY "" (only fill if there's EXPLICIT point breakdown like "a) 0.5đ, b) 0.5đ")
 
-WRONG: "A. (-\\infty; 0)" → CORRECT: "A. $(-\\infty; 0)$"
-WRONG: "\\frac{1}{3}" → CORRECT: "$\\frac{1}{3}$"
+=== MATH FORMATTING ===
+Wrap ALL math in $...$: $\\frac{1}{3}$, $x^2$, $(-\\infty; 0)$
 
-For mixed text and math: "Hàm số $y = f(x)$ nghịch biến trên khoảng $(-\\infty; 0)$"
-
-QUESTION TYPES:
-- "multiple-choice": Trắc nghiệm khách quan (A, B, C, D)
-- "true-false": Trắc nghiệm đúng sai (a, b, c, d with Đ/S)
-- "fill-in": Trắc nghiệm trả lời ngắn
-- "essay": Tự luận
-
-IMAGE HANDLING:
-- If a question contains an image (graph, diagram, table, figure), set "hasImage": true
-- Describe the image in Vietnamese in "imageDescription" field
-- For graphs: "Đồ thị hàm số y = f(x) với trục Ox, Oy, điểm cực trị tại..."
-- For tables: "Bảng số liệu gồm 2 cột: thời gian (giây) và độ cao (mét)..."
-- For geometry: "Hình tam giác ABC với AB = 5cm, góc A = 60°..."
-- IMPORTANT: imageDescription MUST be in Vietnamese
-
-JSON structure:
+=== JSON OUTPUT ===
 {
   "questions": [{
-    "question": "Full question text with LaTeX",
+    "question": "Question text with $LaTeX$",
     "type": "multiple-choice|true-false|fill-in|essay",
-    "options": ["A. option", "B. option", "C. option", "D. option"],
+    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
     "correctAnswer": 0,
-    "explanation": "COMPLETE detailed solution from Hướng dẫn chấm, including all steps",
+    "explanation": "For MC/TF/fill-in: solution from answer key. For essay: empty string",
     "points": 0.25,
-    "subQuestions": [{"label": "a", "correct": true/false}],
-    "sampleAnswer": "For essay: full sample answer",
-    "rubric": "For essay: grading criteria with point breakdown",
+    "subQuestions": [{"label": "a", "content": "statement", "correct": true}],
+    "sampleAnswer": "For essay only: full solution from HƯỚNG DẪN CHẤM",
+    "rubric": "Only if explicit point breakdown exists, otherwise empty",
     "hasImage": true,
-    "imageDescription": "Detailed description of the image/graph/diagram in the question"
+    "imageDescription": "Vietnamese description of image/graph"
   }]
 }
 
-TEXT FORMATTING:
-- Use HTML for formatting: <br> for line breaks, <p> for paragraphs
-- For multi-line content (explanations, solutions), use <br> between lines
-- Example: "Bước 1: Tính đạo hàm<br>$y' = 2x - 3$<br>Bước 2: Giải $y' = 0$<br>$2x - 3 = 0 \\Rightarrow x = \\frac{3}{2}$"
-- Keep each option on a single line (no <br> inside options)
+=== RULES ===
+- Process ALL pages including answer key at the end
+- Use <br> for line breaks
+- Use exact point values from exam`;
 
-RULES:
-- correctAnswer: number (0-3) for multiple-choice, string for fill-in/essay
-- For true-false: use subQuestions array with {label, content, correct}
-- points: Use exact points from exam (0.25, 0.5, 1.0, etc.)
-- explanation MUST contain the FULL solution with step-by-step working
-- Use <br> to separate steps in explanations for readability`;
+    const userPrompt = `Extract ALL questions from these ${images.length} exam pages.
 
-    const userPrompt = `Extract ALL questions AND their COMPLETE answers/solutions from these ${images.length} exam pages.
-
-IMPORTANT: Look for "HƯỚNG DẪN CHẤM" or "ĐÁP ÁN" sections and extract the FULL detailed solutions.
-For each question, include:
-1. The complete question text
-2. All answer options (if applicable)
-3. The correct answer
-4. The COMPLETE explanation with all mathematical steps from the answer key
-5. Point values
+INSTRUCTIONS:
+1. Scan ALL pages - questions are at the start, answer key ("HƯỚNG DẪN CHẤM") is at the end
+2. For each question, find its answer in the answer key section
+3. For ESSAY questions: put the full solution in "sampleAnswer", leave "explanation" and "rubric" empty
+4. DO NOT make up any answers - only extract what's in the document
 
 Return ONLY the JSON object.`;
 

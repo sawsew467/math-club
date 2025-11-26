@@ -23,7 +23,7 @@ export async function convertPDFToImages(
     throw new Error('convertPDFToImages can only run in browser');
   }
 
-  const { scale = 2, maxPages = 10 } = options;
+  const { scale = 2, maxPages = 20 } = options;
 
   try {
     // Dynamic import PDF.js only in browser

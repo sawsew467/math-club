@@ -411,3 +411,47 @@ export async function fetchStudentExamHistory(
     return { success: false, error: 'Network error' }
   }
 }
+
+/**
+ * Grade an essay question using AI
+ */
+export interface EssayGradeResult {
+  score: number
+  feedback: string
+  needsManualGrading: boolean
+}
+
+export async function gradeEssayQuestion(
+  questionText: string,
+  studentAnswer: string,
+  sampleAnswer: string,
+  rubric: string,
+  maxPoints: number
+): Promise<StudentApiResult<EssayGradeResult>> {
+  try {
+    const response = await fetch('/api/exam/grade-essay', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        questionText,
+        studentAnswer,
+        sampleAnswer,
+        rubric,
+        maxPoints,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      return { success: false, error: error.error || 'Failed to grade essay' }
+    }
+
+    const result = await response.json()
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Error grading essay:', error)
+    return { success: false, error: 'Network error' }
+  }
+}

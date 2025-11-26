@@ -120,21 +120,10 @@ export function QuestionEditor({
             <div>
               <h4 className="font-semibold mb-2">Đáp án:</h4>
               {question.type === "essay" ? (
-                <div className="space-y-2">
-                  {/* Sample Answer - from sampleAnswer or correctAnswer */}
-                  <div className="p-3 bg-gray-50 rounded">
-                    <p className="text-sm font-medium mb-1">Đáp án mẫu:</p>
-                    <ContentDisplay
-                      content={question.sampleAnswer || String(question.correctAnswer || "")}
-                    />
-                  </div>
-                  {/* Rubric - grading criteria */}
-                  {question.rubric && (
-                    <div className="p-3 bg-blue-50 rounded">
-                      <p className="text-sm font-medium mb-1">Tiêu chí chấm:</p>
-                      <ContentDisplay content={question.rubric} />
-                    </div>
-                  )}
+                <div className="p-3 bg-green-50 rounded border border-green-200">
+                  <ContentDisplay
+                    content={question.sampleAnswer || String(question.correctAnswer || "(Chưa có đáp án)")}
+                  />
                 </div>
               ) : question.type === "multiple-choice" ? (
                 <RadioGroup value={String(question.correctAnswer)} disabled>
@@ -176,10 +165,13 @@ export function QuestionEditor({
               )}
             </div>
 
-            <div>
-              <h4 className="font-semibold mb-2">Giải thích:</h4>
-              <ContentDisplay content={question.explanation} />
-            </div>
+            {/* Only show explanation for non-essay questions */}
+            {question.type !== "essay" && question.explanation && (
+              <div>
+                <h4 className="font-semibold mb-2">Giải thích:</h4>
+                <ContentDisplay content={question.explanation} />
+              </div>
+            )}
 
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>
@@ -365,39 +357,32 @@ export function QuestionEditor({
             )}
 
             {question.type === "essay" && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Đáp án mẫu / Gợi ý trả lời</Label>
-                  <CustomEditorDynamic
-                    value={String(question.correctAnswer || "")}
-                    onChange={(value: string) =>
-                      updateField("correctAnswer", value)
-                    }
-                    placeholder="Nhập đáp án mẫu hoặc gợi ý trả lời..."
-                    minHeight="200px"
-                  />
-                </div>
-                <div>
-                  <Label>Tiêu chí chấm điểm</Label>
-                  <CustomEditorDynamic
-                    value={question.rubric || ""}
-                    onChange={(value: string) => updateField("rubric", value)}
-                    placeholder="Nhập tiêu chí chấm điểm (ví dụ: Trình bày rõ ràng: 2đ, Đáp án đúng: 3đ...)"
-                    minHeight="150px"
-                  />
-                </div>
+              <div>
+                <Label>Đáp án mẫu</Label>
+                <CustomEditorDynamic
+                  value={question.sampleAnswer || String(question.correctAnswer || "")}
+                  onChange={(value: string) => {
+                    updateField("sampleAnswer", value);
+                    updateField("correctAnswer", value);
+                  }}
+                  placeholder="Nhập đáp án mẫu từ hướng dẫn chấm..."
+                  minHeight="200px"
+                />
               </div>
             )}
 
-            <div>
-              <Label>Giải thích chi tiết</Label>
-              <CustomEditorDynamic
-                value={question.explanation}
-                onChange={(value: string) => updateField("explanation", value)}
-                placeholder="Nhập giải thích cho đáp án đúng..."
-                minHeight="150px"
-              />
-            </div>
+            {/* Show explanation field only for non-essay questions */}
+            {question.type !== "essay" && (
+              <div>
+                <Label>Giải thích chi tiết</Label>
+                <CustomEditorDynamic
+                  value={question.explanation}
+                  onChange={(value: string) => updateField("explanation", value)}
+                  placeholder="Nhập giải thích cho đáp án đúng..."
+                  minHeight="150px"
+                />
+              </div>
+            )}
           </>
         )}
       </CardContent>
