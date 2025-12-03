@@ -251,7 +251,8 @@ export function calculateScore(
 
     if (userAnswer !== undefined) {
       if (question.type === 'true-false' && question.subQuestions) {
-        // For true-false with sub-questions, calculate partial score
+        // For true-false with 4 sub-questions, use fixed score table
+        // 1 ý đúng = 0.1đ | 2 ý đúng = 0.25đ | 3 ý đúng = 0.5đ | 4 ý đúng = 1đ
         const userAnswers = typeof userAnswer === 'string'
           ? JSON.parse(userAnswer) as Record<string, boolean>
           : {}
@@ -263,9 +264,10 @@ export function calculateScore(
           }
         }
 
-        // Partial scoring: points proportional to correct answers
-        pointsEarned = (correctCount / question.subQuestions.length) * question.points
-        isCorrect = correctCount === question.subQuestions.length
+        // Fixed score table for 4 sub-questions
+        const scoreMap: Record<number, number> = { 0: 0, 1: 0.1, 2: 0.25, 3: 0.5, 4: 1 }
+        pointsEarned = scoreMap[correctCount] || 0
+        isCorrect = correctCount === 4
       } else if (question.type === 'essay') {
         // Essays need manual grading - mark as pending
         isCorrect = false

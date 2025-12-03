@@ -211,10 +211,10 @@ export default function ExamTakingPage() {
     for (const question of exam.questions) {
       const userAnswer = userAnswers.get(question.id);
 
-      // Handle true-false with subQuestions
+      // Handle true-false with subQuestions (4 mệnh đề cố định)
+      // Cách tính điểm: 1 ý đúng = 0.1đ | 2 ý đúng = 0.25đ | 3 ý đúng = 0.5đ | 4 ý đúng = 1đ
       if (question.type === 'true-false' && question.subQuestions && question.subQuestions.length > 0) {
         let subCorrect = 0;
-        const totalSubs = question.subQuestions.length;
 
         try {
           const userAnswerObj = userAnswer ? JSON.parse(userAnswer as string) : {};
@@ -228,15 +228,23 @@ export default function ExamTakingPage() {
           // Invalid JSON, all wrong
         }
 
-        const isAllCorrect = subCorrect === totalSubs;
-        const partialScore = (subCorrect / totalSubs) * question.points;
+        // Bảng điểm cố định cho 4 mệnh đề
+        const scoreMap: Record<number, number> = {
+          0: 0,
+          1: 0.1,
+          2: 0.25,
+          3: 0.5,
+          4: 1,
+        };
+        const earnedScore = scoreMap[subCorrect] || 0;
+        const isAllCorrect = subCorrect === 4;
 
-        totalScore += partialScore;
+        totalScore += earnedScore;
         answers.push({
           questionId: question.id,
           userAnswer: userAnswer || '',
           isCorrect: isAllCorrect,
-          pointsEarned: partialScore,
+          pointsEarned: earnedScore,
         });
         continue;
       }

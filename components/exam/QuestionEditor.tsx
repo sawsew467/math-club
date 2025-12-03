@@ -62,6 +62,35 @@ export function QuestionEditor({
     }
   };
 
+  // Sub-question helpers for true-false
+  const updateSubQuestion = (idx: number, field: 'content' | 'correct', value: string | boolean) => {
+    const newSubQuestions = [...(question.subQuestions || [])];
+    newSubQuestions[idx] = { ...newSubQuestions[idx], [field]: value };
+    updateField("subQuestions", newSubQuestions);
+  };
+
+  const addSubQuestion = () => {
+    const currentSubs = question.subQuestions || [];
+    if (currentSubs.length < 6) {
+      const nextLabel = String.fromCharCode(97 + currentSubs.length); // a, b, c, d, e, f
+      const newSub = { label: nextLabel, content: "", correct: false };
+      updateField("subQuestions", [...currentSubs, newSub]);
+    }
+  };
+
+  const removeSubQuestion = (idx: number) => {
+    const currentSubs = question.subQuestions || [];
+    if (currentSubs.length > 1) {
+      const newSubQuestions = currentSubs.filter((_, i) => i !== idx);
+      // Re-label remaining sub-questions
+      const relabeled = newSubQuestions.map((sub, i) => ({
+        ...sub,
+        label: String.fromCharCode(97 + i), // a, b, c, ...
+      }));
+      updateField("subQuestions", relabeled);
+    }
+  };
+
   return (
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -305,22 +334,38 @@ export function QuestionEditor({
 
             {question.type === "true-false" && (
               <div className="space-y-4">
-                <Label>Các mệnh đề đúng/sai</Label>
-                {question.subQuestions && question.subQuestions.length > 0 ? (
-                  <div className="space-y-3">
-                    {question.subQuestions.map((sub, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded">
-                        <span className="font-semibold text-sm min-w-[20px]">{sub.label})</span>
+                <Label>Các mệnh đề đúng/sai (4 mệnh đề)</Label>
+                <div className="space-y-3">
+                  {['a', 'b', 'c', 'd'].map((label, idx) => {
+                    const sub = question.subQuestions?.[idx] || { label, content: "", correct: false };
+                    return (
+                      <div key={label} className="flex items-start gap-3 p-3 bg-gray-50 rounded border">
+                        <span className="font-semibold text-sm min-w-[20px] mt-2">{label})</span>
                         <div className="flex-1">
-                          {sub.content && (
-                            <ContentDisplay content={sub.content} />
-                          )}
+                          <CustomEditorDynamic
+                            value={sub.content || ""}
+                            onChange={(value: string) => {
+                              const newSubQuestions = [...(question.subQuestions || [])];
+                              // Ensure array has 4 elements
+                              while (newSubQuestions.length < 4) {
+                                newSubQuestions.push({ label: String.fromCharCode(97 + newSubQuestions.length), content: "", correct: false });
+                              }
+                              newSubQuestions[idx] = { ...newSubQuestions[idx], label, content: value };
+                              updateField("subQuestions", newSubQuestions);
+                            }}
+                            placeholder={`Nhập nội dung mệnh đề ${label}...`}
+                            minHeight="80px"
+                          />
                         </div>
                         <Select
                           value={sub.correct ? "true" : "false"}
                           onValueChange={(value) => {
                             const newSubQuestions = [...(question.subQuestions || [])];
-                            newSubQuestions[idx] = { ...sub, correct: value === "true" };
+                            // Ensure array has 4 elements
+                            while (newSubQuestions.length < 4) {
+                              newSubQuestions.push({ label: String.fromCharCode(97 + newSubQuestions.length), content: "", correct: false });
+                            }
+                            newSubQuestions[idx] = { ...newSubQuestions[idx], label, correct: value === "true" };
                             updateField("subQuestions", newSubQuestions);
                           }}
                         >
@@ -333,26 +378,27 @@ export function QuestionEditor({
                           </SelectContent>
                         </Select>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  // Fallback for simple true-false
-                  <RadioGroup
-                    value={String(question.correctAnswer)}
-                    onValueChange={(value) =>
-                      updateField("correctAnswer", Number(value))
-                    }
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="0" />
-                      <Label>Đúng</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="1" />
-                      <Label>Sai</Label>
-                    </div>
-                  </RadioGroup>
-                )}
+                    );
+                  })}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Cách tính điểm: 1 ý đúng = 0.1đ | 2 ý đúng = 0.25đ | 3 ý đúng = 0.5đ | 4 ý đúng = 1đ
+                </p>
+              </div>
+            )}
+
+            {question.type === "fill-in" && (
+              <div>
+                <Label>Đáp số đúng</Label>
+                <Input
+                  value={String(question.correctAnswer || "")}
+                  onChange={(e) => updateField("correctAnswer", e.target.value)}
+                  placeholder="Nhập đáp số đúng (VD: 5, -3, 1/2, 3.14...)"
+                  className="mt-1"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Đáp án của học sinh sẽ được so sánh chính xác với đáp số này.
+                </p>
               </div>
             )}
 
